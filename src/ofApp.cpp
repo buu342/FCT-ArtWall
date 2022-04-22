@@ -109,20 +109,23 @@ m_col ofApp::calculateColor(int image) {
 	ofImage currentImage = images[image];
 	ofPixels imagePixels = currentImage.getPixels();
 	m_col sumColor = { 0, 0, 0 };
-	int vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
-	printf("---------- Vector Size %d\n", vectorSize);
+	float vectorSize = imagePixels.getWidth()*imagePixels.getHeight();
+	printf("---------- Vector Size %ld\n", imagePixels.getWidth()*imagePixels.getHeight());
 	if (vectorSize > 0) {
-		for (int i = 0; i < vectorSize; i++) {
-			ofColor colorAtIndex = imagePixels.getColor(i);
-			sumColor.red += colorAtIndex.r;
-			sumColor.green += colorAtIndex.g;
-			sumColor.blue += colorAtIndex.b;
+		for (int y = 0; y < imagePixels.getHeight(); y++) {
+			for (int x = 0; x < imagePixels.getWidth(); x++) {
+				ofColor colorAtIndex = imagePixels.getColor(x, y);
+				sumColor.red += (float)colorAtIndex.r;
+				sumColor.green += (float)colorAtIndex.g;
+				sumColor.blue += (float)colorAtIndex.b;
+			}
 		}
-		sumColor.red = sumColor.red / vectorSize;
-		sumColor.green = sumColor.green / vectorSize;
-		sumColor.blue = sumColor.blue / vectorSize;
+
+		sumColor.red /= vectorSize;
+		sumColor.green /= vectorSize;
+		sumColor.blue /= vectorSize;
 	}
-		//imagePixels.
+	//imagePixels.
 	return sumColor;
 }
 
