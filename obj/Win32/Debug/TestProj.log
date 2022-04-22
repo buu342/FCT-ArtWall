@@ -1,6 +1,0 @@
-﻿  main.cpp
-  ofApp.cpp
-  Info: Boost.Config is older than your compiler version - probably nothing bad will happen - but you may wish to look for an update Boost version.  Define BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE to suppress this message.
-  Info: Boost.Config is older than your compiler version - probably nothing bad will happen - but you may wish to look for an update Boost version.  Define BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE to suppress this message.
-     Criando biblioteca bin\TestProj_debug.lib e objeto bin\TestProj_debug.exp
-  TestProj.vcxproj -> D:\Program Files\of_v0.11.2_vs2017_release\apps\myApps\TestProj\bin\TestProj_debug.exe
