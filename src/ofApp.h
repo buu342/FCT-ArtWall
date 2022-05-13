@@ -31,6 +31,7 @@ public:
 	void gotMessage(ofMessage msg);
 	float calculateLuminance(int image);
 	m_col calculateColor(int image);
+	double calculateAngle(int image);
 
 
 	// we will have a dynamic number of images, based on the content of a directory:

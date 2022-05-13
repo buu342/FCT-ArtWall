@@ -1,4 +1,5 @@
 #include "ofApp.h"
+#include "ofxCv.h"
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -31,15 +32,15 @@ void ofApp::draw() {
 
 	if (dir.size() > 0) {
 		ofSetColor(ofColor::white);
-		images[currentImage].draw(300, 50,256,256);
+		images[currentImage].draw(300, 50, 256, 256);
 
 		ofSetColor(ofColor::gray);
 		m_col colorValue = calculateColor(currentImage);
 		string pathInfo = dir.getName(currentImage) + " " + dir.getPath(currentImage) + "\n\n" +
 			"press any key to advance current image\n\n" +
-			"many thanks to hikaru furuhashi for the OFs" + 
-			"\n Image Luminance: "+ std::to_string(calculateLuminance(currentImage)) +
-			"\n Image Color: " + std::to_string(colorValue.red)+","+ std::to_string(colorValue.green) + ","+ std::to_string(colorValue.blue);
+			"many thanks to hikaru furuhashi for the OFs" +
+			"\n Image Luminance: " + std::to_string(calculateLuminance(currentImage)) +
+			"\n Image Color: " + std::to_string(colorValue.red) + "," + std::to_string(colorValue.green) + "," + std::to_string(colorValue.blue);
 		ofDrawBitmapString(pathInfo, 300, 256 + 80);
 	}
 
@@ -59,10 +60,10 @@ void ofApp::draw() {
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
-	
-	
+
+
 	if (dir.size() > 0) {
-		
+
 		switch (key) {
 		case (57356):
 		case (57357):
@@ -77,7 +78,7 @@ void ofApp::keyPressed(int key) {
 
 
 		}
-		
+
 	}
 
 }
@@ -90,7 +91,7 @@ float ofApp::calculateLuminance(int image) {
 	ofPixels imagePixels = currentImage.getPixels();
 	float sumLuminance = 0;
 	int vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
-	if(vectorSize > 0){
+	if (vectorSize > 0) {
 		for (int i = 0; i < vectorSize; i++) {
 			ofColor colorAtIndex = imagePixels.getColor(i);
 			sumLuminance += luminanceFunction(colorAtIndex);
@@ -105,12 +106,12 @@ float ofApp::calculateLuminance(int image) {
 
 m_col ofApp::calculateColor(int image) {
 
-	 
+
 	ofImage currentImage = images[image];
 	ofPixels imagePixels = currentImage.getPixels();
 	m_col sumColor = { 0, 0, 0 };
-	float vectorSize = imagePixels.getWidth()*imagePixels.getHeight();
-	printf("---------- Vector Size %ld\n", imagePixels.getWidth()*imagePixels.getHeight());
+	float vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
+	printf("---------- Vector Size %ld\n", imagePixels.getWidth() * imagePixels.getHeight());
 	if (vectorSize > 0) {
 		for (int y = 0; y < imagePixels.getHeight(); y++) {
 			for (int x = 0; x < imagePixels.getWidth(); x++) {
@@ -121,13 +122,32 @@ m_col ofApp::calculateColor(int image) {
 			}
 		}
 
-		float div = 1/vectorSize;
+		float div = 1 / vectorSize;
 		sumColor.red *= div;
 		sumColor.green *= div;
 		sumColor.blue *= div;
 	}
 	//imagePixels.
 	return sumColor;
+}
+
+double ofApp :: calculateAngle(int image) {
+	ofImage currentImage = images[image];
+	ofPixels imagePixels = currentImage.getPixels();
+	double angle = 0;
+	float vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
+	if (vectorSize > 0) {
+		for (int y = 0; y < imagePixels.getHeight(); y++) {
+			for (int x = 0; x < imagePixels.getWidth(); x++) {
+				
+
+					/*ofColor colorAtIndex = imagePixels.getColor(x, y);
+					sumColor.red += (float)colorAtIndex.r;
+					sumColor.green += (float)colorAtIndex.g;
+					sumColor.blue += (float)colorAtIndex.b;*/
+			}
+		}
+	}
 }
 
 //--------------------------------------------------------------
