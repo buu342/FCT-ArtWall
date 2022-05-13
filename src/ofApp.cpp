@@ -121,9 +121,10 @@ m_col ofApp::calculateColor(int image) {
 			}
 		}
 
-		sumColor.red /= vectorSize;
-		sumColor.green /= vectorSize;
-		sumColor.blue /= vectorSize;
+		float div = 1/vectorSize;
+		sumColor.red *= div;
+		sumColor.green *= div;
+		sumColor.blue *= div;
 	}
 	//imagePixels.
 	return sumColor;
