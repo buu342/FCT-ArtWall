@@ -1,6 +1,8 @@
 #include "ofApp.h"
 #include "ofxCv.h"
+#include "ofxOpenCv.h"
 
+#define M_PI 3.14159265358979323846
 //--------------------------------------------------------------
 void ofApp::setup() {
 
@@ -131,24 +133,48 @@ m_col ofApp::calculateColor(int image) {
 	return sumColor;
 }
 
-double ofApp :: calculateAngle(int image) {
+double* ofApp :: calculateAngle(int image, double* avgArray) {
 	ofImage currentImage = images[image];
+	//TODO converter grayscale
 	ofPixels imagePixels = currentImage.getPixels();
-	double angle = 0;
-	float vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
-	if (vectorSize > 0) {
-		for (int y = 0; y < imagePixels.getHeight(); y++) {
-			for (int x = 0; x < imagePixels.getWidth(); x++) {
-				
+	ofImage outputImage = currentImage;
 
-					/*ofColor colorAtIndex = imagePixels.getColor(x, y);
-					sumColor.red += (float)colorAtIndex.r;
-					sumColor.green += (float)colorAtIndex.g;
-					sumColor.blue += (float)colorAtIndex.b;*/
-			}
-		}
+	ofxCvColorImage img;
+	img.setFromPixels(imagePixels);
+	cv::Mat m = ofxCv::toCv(img.getPixels());
+	cv::InputArray inputArr = cv::InputArray(m);
+	
+	ofxCvColorImage img2;
+	img2.setFromPixels(outputImage.getPixels());
+	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
+	cv::OutputArray outputArr = cv::OutputArray(m2);
+	
+	double angleArray[8];
+
+	int k = 0;
+	//até 360
+	for(int i = 0; i < 8; i++){
+	cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(32,32),20.00,k/180 * M_PI,40.00,0.50,0.00));
+	cv::Mat m3 = outputArr.getMat();
+
+	int sum = 0;
+	int nRows = m3.rows;
+	int nCols = m3.cols;
+	int matSize = nCols * nRows;
+
+	//para cada linha, para cada coluna (-1, porque nrows/ncols começa a 1, enquanto na matriz começam a zero)
+	//somar o valor do elemento no i, j
+	//m3.at<int>(i,j);
+
+
+	//proabably guardar imagem para interesse?
+	m3.at<int>(0,0);
+	angleArray[i] = 
+		//média de todos 
 	}
-	return 0.0;
+	return angleArray;
+	//fazer média e contagem
+
 }
 
 //--------------------------------------------------------------
