@@ -133,47 +133,145 @@ m_col ofApp::calculateColor(int image) {
 	return sumColor;
 }
 
-double* ofApp :: calculateAngle(int image, double* avgArray) {
+double* ofApp :: calculateGabor(int image, double* avgArray) {
+	//the image we want to fetch from
 	ofImage currentImage = images[image];
-	//TODO converter grayscale
+	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
+	currentImage.setImageType(OF_IMAGE_GRAYSCALE);
+	//the image's pixels
 	ofPixels imagePixels = currentImage.getPixels();
+	//the image we're going to use as the basis for the output images throughout the cycle
 	ofImage outputImage = currentImage;
 
+	//the input image matrix
 	ofxCvColorImage img;
 	img.setFromPixels(imagePixels);
 	cv::Mat m = ofxCv::toCv(img.getPixels());
 	cv::InputArray inputArr = cv::InputArray(m);
 	
+	//the output images maxtices
 	ofxCvColorImage img2;
 	img2.setFromPixels(outputImage.getPixels());
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 	cv::OutputArray outputArr = cv::OutputArray(m2);
 	
+	//this array contains all averages of the values of the image when applied a certain angle of the Gabor filter
 	double angleArray[8];
 
-	int k = 0;
-	//até 360
+	//até 360, 8 vezes, 360/8 = 45
+	int k = 45;
+	
+	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
 	for(int i = 0; i < 8; i++){
-	cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(32,32),20.00,k/180 * M_PI,40.00,0.50,0.00));
+	cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(32,32),20.00,(i)*k/180 * M_PI,40.00,0.50,0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
 	cv::Mat m3 = outputArr.getMat();
 
+	//the sum of all pixel values of the image
 	int sum = 0;
+
+	//number of rows and cols, to speed up access
 	int nRows = m3.rows;
 	int nCols = m3.cols;
+
+	//the size of the matrix as w hole, so we can apply the average to it
 	int matSize = nCols * nRows;
 
-	//para cada linha, para cada coluna (-1, porque nrows/ncols começa a 1, enquanto na matriz começam a zero)
+	//para cada linha, para cada coluna
 	//somar o valor do elemento no i, j
 	//m3.at<int>(i,j);
+	for (int j = 0; j < nRows; j++) {
+		for (int k = 0; k < nCols; k++) {
+			//somar o valor à soma total
+			sum += m3.at<int>(j, k);
 
-
-	//proabably guardar imagem para interesse?
-	m3.at<int>(0,0);
-	angleArray[i] = 
-		//média de todos 
+			//converter em imagem para podermos guardar
+			ofxCv::toOf(m3, outputImage);
+			outputImage.save(dir.getPath(image) + "angle-" + to_string(i));
+		}
 	}
+	//aplicar a média
+	sum = sum / matSize;
+
+
+	//guardar a média na posição adequada do array
+	
+	angleArray[i] = sum;
+		
+	}
+	//return the array
 	return angleArray;
-	//fazer média e contagem
+	
+
+}
+
+double* ofApp::calculateEdges(int image, double* avgArray) {
+	//the image we want to fetch from
+	ofImage currentImage = images[image];
+	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
+	currentImage.setImageType(OF_IMAGE_GRAYSCALE);
+	//the image's pixels
+	ofPixels imagePixels = currentImage.getPixels();
+	//the image we're going to use as the basis for the output images throughout the cycle
+	ofImage outputImage = currentImage;
+
+	//the input image matrix
+	ofxCvColorImage img;
+	img.setFromPixels(imagePixels);
+	cv::Mat m = ofxCv::toCv(img.getPixels());
+	cv::InputArray inputArr = cv::InputArray(m);
+
+	//the output images maxtices
+	ofxCvColorImage img2;
+	img2.setFromPixels(outputImage.getPixels());
+	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
+	cv::OutputArray outputArr = cv::OutputArray(m2);
+
+	//this array contains all averages of the values of the image when applied a certain angle of the Gabor filter
+	double angleArray[8];
+
+	//até 360, 8 vezes, 360/8 = 45
+	int k = 45;
+
+	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
+	for (int i = 0; i < 8; i++) {
+		cv::filter2D(inputArr, outputArr, -1, cv::getGaborKernel(cv::Size(32, 32), 20.00, (i)*k / 180 * M_PI, 40.00, 0.50, 0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
+		cv::Mat m3 = outputArr.getMat();
+
+		//the sum of all pixel values of the image
+		int sum = 0;
+
+		//number of rows and cols, to speed up access
+		int nRows = m3.rows;
+		int nCols = m3.cols;
+
+		//the size of the matrix as w hole, so we can apply the average to it
+		int matSize = nCols * nRows;
+
+		//para cada linha, para cada coluna
+		//somar o valor do elemento no i, j
+		//m3.at<int>(i,j);
+		for (int j = 0; j < nRows; j++) {
+			for (int k = 0; k < nCols; k++) {
+				//somar o valor à soma total
+				sum += m3.at<int>(j, k);
+
+				//converter em imagem para podermos guardar
+				ofxCv::toOf(m3, outputImage);
+				outputImage.save(dir.getPath(image) + "angle-" + to_string(i));
+			}
+		}
+		//aplicar a média
+		sum = sum / matSize;
+
+
+		//guardar a média na posição adequada do array
+
+		angleArray[i] = sum;
+
+	}
+	//return the array
+	return angleArray;
+
 
 }
 
