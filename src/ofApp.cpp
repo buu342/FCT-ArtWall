@@ -156,7 +156,6 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	cv::OutputArray outputArr = cv::OutputArray(m2);
 	
 	//this array contains all averages of the values of the image when applied a certain angle of the Gabor filter
-	double angleArray[8];
 
 	//até 360, 8 vezes, 360/8 = 45
 	int k = 45;
@@ -195,11 +194,11 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 
 	//guardar a média na posição adequada do array
 	
-	angleArray[i] = sum;
+	avgArray[i] = sum;
 		
 	}
 	//return the array
-	return angleArray;
+	return avgArray;
 	
 
 }
@@ -220,22 +219,60 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 	cv::Mat m = ofxCv::toCv(img.getPixels());
 	cv::InputArray inputArr = cv::InputArray(m);
 
-	//the output images maxtices
+	//the edge detection matrices
+	float data1[4] = { -1, -1, 1, 1};
+	cv::Mat mE1 = cv::Mat(2, 2, CV_32F, data1);
+	cv::InputArray inputArrEdge1 = cv::InputArray(mE1);
+
+	//the edge detection matrices
+	float data2[4] = { -1, 1, -1, 1 };
+	cv::Mat mE2 = cv::Mat(2, 2, CV_32F, data2);
+	cv::InputArray inputArrEdge2 = cv::InputArray(mE2);
+
+	//the edge detection matrices
+	float data3[4] = { 0, 1, -1, 0 };
+	cv::Mat mE3 = cv::Mat(2, 2, CV_32F, data3);
+	cv::InputArray inputArrEdge3 = cv::InputArray(mE3);
+
+	//the edge detection matrices
+	float data4[4] = { -1, 0, 0, 1 };
+	cv::Mat mE4 = cv::Mat(2, 2, CV_32F, data4);
+	cv::InputArray inputArrEdge4 = cv::InputArray(mE4);
+
+	//the output images matrices
 	ofxCvColorImage img2;
 	img2.setFromPixels(outputImage.getPixels());
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 	cv::OutputArray outputArr = cv::OutputArray(m2);
 
 	//this array contains all averages of the values of the image when applied a certain angle of the Gabor filter
-	double angleArray[8];
+
 
 	//até 360, 8 vezes, 360/8 = 45
 	int k = 45;
 
 	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
-	for (int i = 0; i < 8; i++) {
-		cv::filter2D(inputArr, outputArr, -1, cv::getGaborKernel(cv::Size(32, 32), 20.00, (i)*k / 180 * M_PI, 40.00, 0.50, 0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
-		cv::Mat m3 = outputArr.getMat();
+	for (int i = 0; i < 4; i++) {
+
+		switch (i) {
+		case 0:
+			cv::filter2D(inputArr, outputArr, -1, inputArrEdge1);	
+			break;
+		case 1:
+			cv::filter2D(inputArr, outputArr, -1, inputArrEdge2);
+			break;
+		case 2:
+			cv::filter2D(inputArr, outputArr, -1, inputArrEdge3);
+			break;
+		case 3:
+			cv::filter2D(inputArr, outputArr, -1, inputArrEdge4);
+			break;
+		default:
+			// code block
+		}
+
+
+				cv::Mat m3 = outputArr.getMat();
 
 		//the sum of all pixel values of the image
 		int sum = 0;
@@ -266,11 +303,11 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 		//guardar a média na posição adequada do array
 
-		angleArray[i] = sum;
+		avgArray[i] = sum;
 
 	}
 	//return the array
-	return angleArray;
+	return avgArray;
 
 
 }
