@@ -47,6 +47,12 @@ void ofApp::draw() {
 			"many thanks to hikaru furuhashi for the OFs" +
 			"\n Image Luminance: " + std::to_string(calculateLuminance(currentImage)) +
 			"\n Image Color: " + std::to_string(colorValue.red) + "," + std::to_string(colorValue.green) + "," + std::to_string(colorValue.blue);
+
+		double gabor[8] = {};
+		calculateGabor(currentImage, gabor);
+		double edge[4] = {};
+		calculateEdges(currentImage, edge);
+
 		ofDrawBitmapString(pathInfo, 300, 256 + 80);
 	}
 
