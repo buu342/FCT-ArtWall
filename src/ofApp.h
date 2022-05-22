@@ -2,7 +2,11 @@
 
 #pragma once
 
+#pragma warning( push )
+#pragma warning ( disable : ALL_CODE_ANALYSIS_WARNINGS )
 #include "ofMain.h"
+#pragma warning( pop )
+
 
 struct m_col {
 	float red;

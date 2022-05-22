@@ -1,6 +1,10 @@
 #include "ofApp.h"
+
+#pragma warning( push )
+#pragma warning ( disable : ALL_CODE_ANALYSIS_WARNINGS )
 #include "ofxCv.h"
 #include "ofxOpenCv.h"
+#pragma warning( pop )
 
 #define M_PI 3.14159265358979323846
 //--------------------------------------------------------------
@@ -269,6 +273,7 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 			break;
 		default:
 			// code block
+			break;
 		}
 
 
