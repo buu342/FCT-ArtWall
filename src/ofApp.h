@@ -37,6 +37,7 @@ public:
 	m_col calculateColor(int image);
 	double* calculateGabor(int image, double* avgArray);
 	double* calculateEdges(int image, double* avgArray);
+	int haarFaces(int image, ofxCvHaarFinder hF);
 
 
 	// we will have a dynamic number of images, based on the content of a directory:

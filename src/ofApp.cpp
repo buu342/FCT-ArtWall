@@ -9,6 +9,10 @@
 #define M_PI 3.14159265358979323846
 //--------------------------------------------------------------
 void ofApp::setup() {
+	//set up the haar finder
+	ofxCvHaarFinder hF = ofxCvHaarFinder();
+	hF.setup("haarcascade_frontalface_default.xml");
+
 
 	dir.listDir("images/of_logos/");
 	dir.allowExt("jpg");
@@ -321,6 +325,19 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 	return avgArray;
 
 
+}
+
+int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
+	ofImage currentImage = images[image];
+
+	hF.findHaarObjects(currentImage);
+
+	//this will store it as blobs, now we need to count them
+	int count = 0;
+	for (int i = 0; i < hF.blobs.size(); i++) {
+		count++;
+	}
+	return count;
 }
 
 //--------------------------------------------------------------
