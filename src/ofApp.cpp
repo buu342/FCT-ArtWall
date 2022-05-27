@@ -127,7 +127,6 @@ m_col ofApp::calculateColor(int image) {
 	ofPixels imagePixels = currentImage.getPixels();
 	m_col sumColor = { 0, 0, 0 };
 	float vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
-	printf("---------- Vector Size %ld\n", imagePixels.getWidth() * imagePixels.getHeight());
 	if (vectorSize > 0) {
 		for (int y = 0; y < imagePixels.getHeight(); y++) {
 			for (int x = 0; x < imagePixels.getWidth(); x++) {
@@ -158,25 +157,24 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	ofImage outputImage = currentImage;
 
 	//the input image matrix
-	ofxCvColorImage img;
+	ofxCvGrayscaleImage img;
 	img.setFromPixels(imagePixels);
 	cv::Mat m = ofxCv::toCv(img.getPixels());
-	cv::InputArray inputArr = cv::InputArray(m);
+	cv::InputArray inputArr (m);
 	
 	//the output images maxtices
-	ofxCvColorImage img2;
+	ofxCvGrayscaleImage img2;
 	img2.setFromPixels(outputImage.getPixels());
+
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
-	cv::OutputArray outputArr = cv::OutputArray(m2);
-	
-	//this array contains all averages of the values of the image when applied a certain angle of the Gabor filter
+	cv::OutputArray outputArr (m2);
 
 	//até 360, 8 vezes, 360/8 = 45
 	int k = 45;
 	
 	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
-	for(int i = 0; i < 8; i++){
-	cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(32,32),20.00,(i)*k/180 * M_PI,40.00,0.50,0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
+	for(int i = 0; i < 1; i++){
+	//cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(16,16),20.00,(i)*k/180 * M_PI,40.00,0.50,0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
 	cv::Mat m3 = outputArr.getMat();
 
 	//the sum of all pixel values of the image
@@ -195,16 +193,17 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	for (int j = 0; j < nRows; j++) {
 		for (int k = 0; k < nCols; k++) {
 			//somar o valor à soma total
-			sum += m3.at<int>(j, k);
+			sum += m3.at<unsigned char>(j, k);
 
 			//converter em imagem para podermos guardar
-			ofxCv::toOf(m3, outputImage);
-			outputImage.save(dir.getPath(image) + "angle-" + to_string(i));
+			
 		}
 	}
 	//aplicar a média
 	sum = sum / matSize;
 
+	ofxCv::toOf(m3, outputImage);
+	outputImage.save(dir.getPath(image) + "angle-" + to_string(i));
 
 	//guardar a média na posição adequada do array
 	
@@ -228,33 +227,33 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 	ofImage outputImage = currentImage;
 
 	//the input image matrix
-	ofxCvColorImage img;
+	ofxCvGrayscaleImage img;
 	img.setFromPixels(imagePixels);
 	cv::Mat m = ofxCv::toCv(img.getPixels());
-	cv::InputArray inputArr = cv::InputArray(m);
+	cv::InputArray inputArr (m);
 
 	//the edge detection matrices
 	float data1[4] = { -1, -1, 1, 1};
 	cv::Mat mE1 = cv::Mat(2, 2, CV_32F, data1);
-	cv::InputArray inputArrEdge1 = cv::InputArray(mE1);
+	cv::InputArray inputArrEdge1 (mE1);
 
 	//the edge detection matrices
 	float data2[4] = { -1, 1, -1, 1 };
 	cv::Mat mE2 = cv::Mat(2, 2, CV_32F, data2);
-	cv::InputArray inputArrEdge2 = cv::InputArray(mE2);
+	cv::InputArray inputArrEdge2 (mE2);
 
 	//the edge detection matrices
 	float data3[4] = { 0, 1, -1, 0 };
 	cv::Mat mE3 = cv::Mat(2, 2, CV_32F, data3);
-	cv::InputArray inputArrEdge3 = cv::InputArray(mE3);
+	cv::InputArray inputArrEdge3 (mE3);
 
 	//the edge detection matrices
 	float data4[4] = { -1, 0, 0, 1 };
 	cv::Mat mE4 = cv::Mat(2, 2, CV_32F, data4);
-	cv::InputArray inputArrEdge4 = cv::InputArray(mE4);
+	cv::InputArray inputArrEdge4 (mE4);
 
 	//the output images matrices
-	ofxCvColorImage img2;
+	ofxCvGrayscaleImage img2;
 	img2.setFromPixels(outputImage.getPixels());
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 	cv::OutputArray outputArr = cv::OutputArray(m2);
@@ -305,15 +304,17 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 		for (int j = 0; j < nRows; j++) {
 			for (int k = 0; k < nCols; k++) {
 				//somar o valor à soma total
-				sum += m3.at<int>(j, k);
+				sum += m3.at<unsigned char>(j, k);
 
-				//converter em imagem para podermos guardar
-				ofxCv::toOf(m3, outputImage);
-				outputImage.save(dir.getPath(image) + "angle-" + to_string(i));
+
 			}
 		}
 		//aplicar a média
 		sum = sum / matSize;
+
+		//converter em imagem para podermos guardar
+		ofxCv::toOf(m3, outputImage);
+		outputImage.save(dir.getPath(image) + "edge-" + to_string(i));
 
 
 		//guardar a média na posição adequada do array
