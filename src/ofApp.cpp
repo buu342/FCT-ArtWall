@@ -1,19 +1,19 @@
 #include "ofApp.h"
 
-#pragma warning( push )
-#pragma warning ( disable : ALL_CODE_ANALYSIS_WARNINGS )
+#ifndef CODE_ANALYSIS
 #include "ofxCv.h"
 #include "ofxOpenCv.h"
-#pragma warning( pop )
+#endif
 
 #define M_PI 3.14159265358979323846
+
 //--------------------------------------------------------------
 void ofApp::setup() {
 	//set up the haar finder
 	ofxCvHaarFinder hF = ofxCvHaarFinder();
 	hF.setup("haarcascade_frontalface_default.xml");
-
-
+	
+	 
 	dir.listDir("images/of_logos/");
 	dir.allowExt("jpg");
 	dir.sort(); // in linux the file system doesn't return file lists ordered in alphabetical order
@@ -128,8 +128,8 @@ m_col ofApp::calculateColor(int image) {
 	m_col sumColor = { 0, 0, 0 };
 	float vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
 	if (vectorSize > 0) {
-		for (int y = 0; y < imagePixels.getHeight(); y++) {
-			for (int x = 0; x < imagePixels.getWidth(); x++) {
+		for (uint32_t y = 0; y < imagePixels.getHeight(); y++) {
+			for (uint32_t x = 0; x < imagePixels.getWidth(); x++) {
 				ofColor colorAtIndex = imagePixels.getColor(x, y);
 				sumColor.red += (float)colorAtIndex.r;
 				sumColor.green += (float)colorAtIndex.g;
@@ -335,7 +335,7 @@ int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
 
 	//this will store it as blobs, now we need to count them
 	int count = 0;
-	for (int i = 0; i < hF.blobs.size(); i++) {
+	for (uint32_t i = 0; i < hF.blobs.size(); i++) {
 		count++;
 	}
 	return count;

@@ -2,11 +2,10 @@
 
 #pragma once
 
-#pragma warning( push )
-#pragma warning ( disable : ALL_CODE_ANALYSIS_WARNINGS )
+#ifndef CODE_ANALYSIS
 #include "ofMain.h"
 #include "ofxOpenCv.h"
-#pragma warning( pop )
+#endif
 
 
 struct m_col {
@@ -48,4 +47,3 @@ public:
 	int currentImage;
 
 };
-

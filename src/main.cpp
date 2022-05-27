@@ -1,7 +1,6 @@
-#pragma warning( push )
-#pragma warning ( disable : ALL_CODE_ANALYSIS_WARNINGS )
+#ifndef CODE_ANALYSIS
 #include "ofMain.h"
-#pragma warning( pop )
+#endif
 
 #include "ofApp.h"
 
@@ -16,3 +15,4 @@ int main() {
 	ofRunApp(new ofApp());
 
 }
+ 
