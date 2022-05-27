@@ -15,9 +15,9 @@ void ofApp::setup() {
 	
 	 
 	dir.listDir("images/of_logos/");
-	dir.allowExt("jpg");
+	dir.allowExt("jpg"); 
 	dir.sort(); // in linux the file system doesn't return file lists ordered in alphabetical order
-
+	 
 	//allocate the vector to have as many ofImages as files
 	if (dir.size()) {
 		images.assign(dir.size(), ofImage());
@@ -170,11 +170,12 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	cv::OutputArray outputArr (m2);
 
 	//até 360, 8 vezes, 360/8 = 45
-	int k = 45;
+	int k = 22.5;
 	
 	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
-	for(int i = 0; i < 1; i++){
-	//cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(16,16),20.00,(i)*k/180 * M_PI,40.00,0.50,0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
+	for(int i = 0; i < 8; i++){
+		double rads = (i * k) / 180.0 * M_PI;
+	cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(32,32),20.00,rads,20.00,0.50,0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
 	cv::Mat m3 = outputArr.getMat();
 
 	//the sum of all pixel values of the image
@@ -203,7 +204,9 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	sum = sum / matSize;
 
 	ofxCv::toOf(m3, outputImage);
-	outputImage.save(dir.getPath(image) + "angle-" + to_string(i));
+	string direc = dir.getPath(image) + "angle-" + to_string(i);
+
+	//outputImage.save("test"+ to_string(i)+".jpg");
 
 	//guardar a média na posição adequada do array
 	
@@ -256,13 +259,11 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 	ofxCvGrayscaleImage img2;
 	img2.setFromPixels(outputImage.getPixels());
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
-	cv::OutputArray outputArr = cv::OutputArray(m2);
+	cv::OutputArray outputArr (m2);
 
 	//this array contains all averages of the values of the image when applied a certain angle of the Gabor filter
 
 
-	//até 360, 8 vezes, 360/8 = 45
-	int k = 45;
 
 	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
 	for (int i = 0; i < 4; i++) {
@@ -314,8 +315,7 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 		//converter em imagem para podermos guardar
 		ofxCv::toOf(m3, outputImage);
-		outputImage.save(dir.getPath(image) + "edge-" + to_string(i));
-
+		outputImage.save("toast" + to_string(i) + ".jpg");
 
 		//guardar a média na posição adequada do array
 
