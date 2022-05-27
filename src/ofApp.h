@@ -5,6 +5,7 @@
 #pragma warning( push )
 #pragma warning ( disable : ALL_CODE_ANALYSIS_WARNINGS )
 #include "ofMain.h"
+#include "ofxOpenCv.h"
 #pragma warning( pop )
 
 
