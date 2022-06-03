@@ -7,6 +7,8 @@
 #include "ofxOpenCv.h"
 #endif
 
+#include "thumbobj.h"
+
 
 
 struct m_col {
@@ -46,8 +48,8 @@ public:
 
 	// we will have a dynamic number of images, based on the content of a directory:
 	ofDirectory dir;
-	vector<ofImage> images;
+	vector<ThumbObject*> images;
 
-	int currentImage;
+	ThumbObject* selectedImage;
 
 };

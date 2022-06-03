@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "ofApp.h"
 
 #ifndef CODE_ANALYSIS
@@ -8,6 +10,7 @@
 using cv::Mat;
 
 #define M_PI 3.14159265358979323846
+#define SCALESPEED 5
 
 const double kDistanceCoef = 4.0;
 const int kMaxMatchingSize = 50;
@@ -26,30 +29,83 @@ void ofApp::setup() {
 	 
 	//allocate the vector to have as many ofImages as files
 	if (dir.size()) {
-		images.assign(dir.size(), ofImage());
+		images.resize(dir.size());
 	}
 
 	// you can now iterate through the files and load them into the ofImage vector
-	for (int i = 0; i < (int)dir.size(); i++) {
-		images[i].load(dir.getPath(i));
+	for (size_t i = 0; i < images.size(); i++) {
+		images[i] = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
 	}
-	currentImage = 0;
+	selectedImage = NULL;
 
 	ofBackground(ofColor::black);
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
+	for (int i=0; i<images.size(); i++) {
+		ThumbObject* img = images[i];
+		Vector2D pos = img->GetPos();
+		Vector2D size = img->GetSize();
+		Vector2D realsize = img->GetRealSize();
+		float scaleamount = SCALESPEED;
+		
+		// Check if the scale won't go out of bounds
+		if ((pos.x + size.x+SCALESPEED > ofGetWindowWidth()) || (pos.y + size.y+SCALESPEED > ofGetWindowHeight()))
+		{
+			if (pos.x + size.x+SCALESPEED > ofGetWindowWidth())
+			{
+				scaleamount -= pos.x + size.x+SCALESPEED - ofGetWindowWidth();
+			}
 
+			if (pos.y + size.y+scaleamount > ofGetWindowHeight())
+			{
+				scaleamount -= pos.y + size.y+scaleamount - ofGetWindowHeight();
+			}
+		}
+
+		// Don't scale larger than the original size
+		if (size.x+scaleamount > realsize.x)
+			scaleamount -= size.x+scaleamount - realsize.x;
+		if (size.y+scaleamount > realsize.y)
+			scaleamount -= size.y+scaleamount - realsize.y;
+
+		// Check for overlaps
+		for (int j=0; j<images.size(); j++)
+		{
+			if (i != j)
+			{
+				while (img->WouldOverlap(images[j], scaleamount))
+				{
+					Vector2D otherpos = images[j]->GetPos();
+					if (pos.x + size.x + scaleamount > otherpos.x)
+						scaleamount -= pos.x + size.x + scaleamount - otherpos.x;
+					if (pos.y + size.y + scaleamount > otherpos.y)
+						scaleamount -= pos.y + size.y + scaleamount - otherpos.y;
+				}
+			}
+		}
+		if (scaleamount < 0)
+			scaleamount = 0;
+
+		// Set the actual size
+		img->SetSize(size.x+scaleamount, size.y+scaleamount);
+	}
 }
 
 //--------------------------------------------------------------
 void ofApp::draw() {
 
 	if (dir.size() > 0) {
-		ofSetColor(ofColor::white);
-		images[currentImage].draw(300, 50, 256, 256);
+		for (int i=0; i<images.size(); i++) {
+			ThumbObject* img = images[i];
+			Vector2D pos = img->GetPos();
+			Vector2D size = img->GetSize();
+			ofSetColor(ofColor::white);
+			img->GetImage()->draw(pos.x, pos.y, size.x, size.y);
+		}
 
+		/*
 		ofSetColor(ofColor::gray);
 		m_col colorValue = calculateColor(currentImage);
 		string pathInfo = dir.getName(currentImage) + " " + dir.getPath(currentImage) + "\n\n" +
@@ -64,8 +120,10 @@ void ofApp::draw() {
 		calculateEdges(currentImage, edge);
 
 		ofDrawBitmapString(pathInfo, 300, 256 + 80);
+		*/
 	}
 
+	/*
 	ofSetColor(ofColor::gray);
 	for (int i = 0; i < (int)dir.size(); i++) {
 		if (i == currentImage) {
@@ -77,36 +135,8 @@ void ofApp::draw() {
 		string fileInfo = "file " + ofToString(i + 1) + " = " + dir.getName(i);
 		ofDrawBitmapString(fileInfo, 50, i * 20 + 50);
 	}
-
+	*/
 }
-
-//--------------------------------------------------------------
-void ofApp::keyPressed(int key) {
-
-
-	if (dir.size() > 0) {
-
-		switch (key) {
-		case (57356):
-		case (57357):
-			currentImage--;
-			currentImage %= dir.size();
-			break;
-		case (57358):
-		case (57359):
-			currentImage++;
-			currentImage %= dir.size();
-			break;
-
-
-		}
-
-	}
-
-}
-
-
-
 
 float luminanceFunction(ofColor color) {
 	return (0.2126 * (float)color.r + 0.7152 * (float)color.g + 0.0722 * (float)color.b);
@@ -117,8 +147,8 @@ float luminanceFunction(ofColor color) {
 
 
 float ofApp::calculateLuminance(int image) {
-	ofImage currentImage = images[image];
-	ofPixels imagePixels = currentImage.getPixels();
+	ofImage* currentImage = images[image]->GetImage();
+	ofPixels imagePixels = currentImage->getPixels();
 	float sumLuminance = 0;
 	int vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
 	if (vectorSize > 0) {
@@ -131,14 +161,11 @@ float ofApp::calculateLuminance(int image) {
 	return sumLuminance;
 }
 
-
-
-
 m_col ofApp::calculateColor(int image) {
 
 
-	ofImage currentImage = images[image];
-	ofPixels imagePixels = currentImage.getPixels();
+	ofImage* currentImage = images[image]->GetImage();
+	ofPixels imagePixels = currentImage->getPixels();
 	m_col sumColor = { 0, 0, 0 };
 	float vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
 	if (vectorSize > 0) {
@@ -165,13 +192,13 @@ m_col ofApp::calculateColor(int image) {
 
 double* ofApp :: calculateGabor(int image, double* avgArray) {
 	//the image we want to fetch from
-	ofImage currentImage = images[image];
+	ofImage* currentImage = images[image]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
-	currentImage.setImageType(OF_IMAGE_GRAYSCALE);
+	currentImage->setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
-	ofPixels imagePixels = currentImage.getPixels();
+	ofPixels imagePixels = currentImage->getPixels();
 	//the image we're going to use as the basis for the output images throughout the cycle
-	ofImage outputImage = currentImage;
+	ofImage* outputImage = currentImage;
 
 	//the input image matrix
 	ofxCvGrayscaleImage img;
@@ -181,12 +208,12 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	
 	//the output images maxtices
 	ofxCvGrayscaleImage img2;
-	img2.setFromPixels(outputImage.getPixels());
+	img2.setFromPixels(outputImage->getPixels());
 
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 	cv::OutputArray outputArr (m2);
 
-	//até 360, 8 vezes, 360/8 = 45
+	//atï¿½ 360, 8 vezes, 360/8 = 45
 	int k = 22.5;
 	
 	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
@@ -210,14 +237,14 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	//m3.at<int>(i,j);
 	for (int j = 0; j < nRows; j++) {
 		for (int k = 0; k < nCols; k++) {
-			//somar o valor à soma total
+			//somar o valor ï¿½ soma total
 			sum += m3.at<unsigned char>(j, k);
 
 			//converter em imagem para podermos guardar
 			
 		}
 	}
-	//aplicar a média
+	//aplicar a mï¿½dia
 	sum = sum / matSize;
 
 	ofxCv::toOf(m3, outputImage);
@@ -225,7 +252,7 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 
 	//outputImage.save("test"+ to_string(i)+".jpg");
 
-	//guardar a média na posição adequada do array
+	//guardar a mï¿½dia na posiï¿½ï¿½o adequada do array
 	
 	avgArray[i] = sum;
 		
@@ -241,13 +268,13 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 
 double* ofApp::calculateEdges(int image, double* avgArray) {
 	//the image we want to fetch from
-	ofImage currentImage = images[image];
+	ofImage* currentImage = images[image]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
-	currentImage.setImageType(OF_IMAGE_GRAYSCALE);
+	currentImage->setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
-	ofPixels imagePixels = currentImage.getPixels();
+	ofPixels imagePixels = currentImage->getPixels();
 	//the image we're going to use as the basis for the output images throughout the cycle
-	ofImage outputImage = currentImage;
+	ofImage* outputImage = currentImage;
 
 	//the input image matrix
 	ofxCvGrayscaleImage img;
@@ -277,7 +304,7 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 	//the output images matrices
 	ofxCvGrayscaleImage img2;
-	img2.setFromPixels(outputImage.getPixels());
+	img2.setFromPixels(outputImage->getPixels());
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 	cv::OutputArray outputArr (m2);
 
@@ -320,20 +347,20 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 		//m3.at<int>(i,j);
 		for (int j = 0; j < nRows; j++) {
 			for (int k = 0; k < nCols; k++) {
-				//somar o valor à soma total
+				//somar o valor ï¿½ soma total
 				sum += m3.at<unsigned char>(j, k);
 
 
 			}
 		}
-		//aplicar a média
+		//aplicar a mï¿½dia
 		sum = sum / matSize;
 
 		//converter em imagem para podermos guardar
 		ofxCv::toOf(m3, outputImage);
 		outputImage.save("toast" + to_string(i) + ".jpg");
 
-		//guardar a média na posição adequada do array
+		//guardar a mï¿½dia na posiï¿½ï¿½o adequada do array
 
 		avgArray[i] = sum;
 
@@ -474,9 +501,9 @@ void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches) {
 
 //haar face detection
 int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
-	ofImage currentImage = images[image];
+	ofImage* currentImage = images[image]->GetImage();
 
-	hF.findHaarObjects(currentImage);
+	hF.findHaarObjects(*currentImage);
 
 	//this will store it as blobs, now we need to count them
 	int count = 0;
@@ -484,6 +511,31 @@ int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
 		count++;
 	}
 	return count;
+}
+
+//--------------------------------------------------------------
+void ofApp::keyPressed(int key) {
+
+	/*
+	if (dir.size() > 0) {
+
+	switch (key) {
+	case (57356):
+	case (57357):
+	currentImage--;
+	currentImage %= dir.size();
+	break;
+	case (57358):
+	case (57359):
+	currentImage++;
+	currentImage %= dir.size();
+	break;
+
+
+	}
+
+	}
+	*/
 }
 
 //--------------------------------------------------------------
@@ -498,17 +550,42 @@ void ofApp::mouseMoved(int x, int y) {
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button) {
-
+	if (button == OF_MOUSE_BUTTON_LEFT)
+	{
+		if (selectedImage != NULL)
+		{
+			Vector2D size = selectedImage->GetSize();
+			Vector2D gpos = selectedImage->GetGrabbedPosition();
+			x = MAX(0, MIN(x-gpos.x, ofGetWindowWidth() - size.x));
+			y = MAX(0, MIN(y-gpos.y, ofGetWindowHeight() - size.y));
+			selectedImage->SetPos(x, y);
+		}
+	}
 }
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button) {
-
+	if (button == OF_MOUSE_BUTTON_LEFT)
+	{
+		for (int i=0; i<images.size(); i++)
+		{
+			ThumbObject* img = images[i];
+			Vector2D pos = img->GetPos();
+			Vector2D size = img->GetSize();
+			if (x >= pos.x && x <= pos.x+size.x && y >= pos.y && y <= pos.y+size.y)
+			{
+				selectedImage = img;
+				selectedImage->SetGrabbedPosition(x-pos.x, y-pos.y);
+				break;
+			}
+		}
+	}
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button) {
-
+	if (button == OF_MOUSE_BUTTON_LEFT)
+		selectedImage = NULL;
 }
 
 //--------------------------------------------------------------
