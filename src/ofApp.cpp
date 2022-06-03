@@ -21,13 +21,13 @@ void ofApp::setup() {
 	//set up the haar finder
 	ofxCvHaarFinder hF = ofxCvHaarFinder();
 	hF.setup("haarcascade_frontalface_default.xml");
-	
-	 
+
+
 	dir.listDir("images/of_logos/");
 	dir.allowExt("jpg"); 
 	dir.sort(); // in linux the file system doesn't return file lists ordered in alphabetical order
-	 
-	//allocate the vector to have as many ofImages as files
+
+				//allocate the vector to have as many ofImages as files
 	if (dir.size()) {
 		images.resize(dir.size());
 	}
@@ -36,52 +36,106 @@ void ofApp::setup() {
 	for (size_t i = 0; i < images.size(); i++) {
 		images[i] = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
 	}
-	currentImage = 0;
+	selectedImage = NULL;
 
 	ofBackground(ofColor::black);
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
+	for (int i=0; i<images.size(); i++) {
+		ThumbObject* img = images[i];
+		Vector2D pos = img->GetPos();
+		Vector2D size = img->GetSize();
+		Vector2D realsize = img->GetRealSize();
+		float scaleamount = SCALESPEED;
 
+		// Check if the scale won't go out of bounds
+		if ((pos.x + size.x+SCALESPEED > ofGetWindowWidth()) || (pos.y + size.y+SCALESPEED > ofGetWindowHeight()))
+		{
+			if (pos.x + size.x+SCALESPEED > ofGetWindowWidth())
+			{
+				scaleamount -= pos.x + size.x+SCALESPEED - ofGetWindowWidth();
+			}
+
+			if (pos.y + size.y+scaleamount > ofGetWindowHeight())
+			{
+				scaleamount -= pos.y + size.y+scaleamount - ofGetWindowHeight();
+			}
+		}
+
+		// Don't scale larger than the original size
+		if (size.x+scaleamount > realsize.x)
+			scaleamount -= size.x+scaleamount - realsize.x;
+		if (size.y+scaleamount > realsize.y)
+			scaleamount -= size.y+scaleamount - realsize.y;
+
+		// Check for overlaps
+		for (int j=0; j<images.size(); j++)
+		{
+			if (i != j)
+			{
+				while (img->WouldOverlap(images[j], scaleamount))
+				{
+					Vector2D otherpos = images[j]->GetPos();
+					if (pos.x + size.x + scaleamount > otherpos.x)
+						scaleamount -= pos.x + size.x + scaleamount - otherpos.x;
+					if (pos.y + size.y + scaleamount > otherpos.y)
+						scaleamount -= pos.y + size.y + scaleamount - otherpos.y;
+				}
+			}
+		}
+		if (scaleamount < 0)
+			scaleamount = 0;
+
+		// Set the actual size
+		img->SetSize(size.x+scaleamount, size.y+scaleamount);
+	}
 }
 
 //--------------------------------------------------------------
 void ofApp::draw() {
 
 	if (dir.size() > 0) {
-		ofSetColor(ofColor::white);
-		ThumbObject* img = images[currentImage];
-		img->GetImage()->draw(300, 50, 256, 256);
+		for (int i=0; i<images.size(); i++) {
+			ThumbObject* img = images[i];
+			Vector2D pos = img->GetPos();
+			Vector2D size = img->GetSize();
+			ofSetColor(ofColor::white);
+			img->GetImage()->draw(pos.x, pos.y, size.x, size.y);
+		}
 
+		/*
 		ofSetColor(ofColor::gray);
 		m_col colorValue = calculateColor(currentImage);
 		string pathInfo = dir.getName(currentImage) + " " + dir.getPath(currentImage) + "\n\n" +
-			"press any key to advance current image\n\n" +
-			"many thanks to hikaru furuhashi for the OFs" +
-			"\n Image Luminance: " + std::to_string(calculateLuminance(currentImage)) +
-			"\n Image Color: " + std::to_string(colorValue.red) + "," + std::to_string(colorValue.green) + "," + std::to_string(colorValue.blue);
+		"press any key to advance current image\n\n" +
+		"many thanks to hikaru furuhashi for the OFs" +
+		"\n Image Luminance: " + std::to_string(calculateLuminance(currentImage)) +
+		"\n Image Color: " + std::to_string(colorValue.red) + "," + std::to_string(colorValue.green) + "," + std::to_string(colorValue.blue);
 
-		
 		double gabor[8] = {};
 		calculateGabor(currentImage, gabor);
 		double edge[4] = {};
 		calculateEdges(currentImage, edge);
 
 		ofDrawBitmapString(pathInfo, 300, 256 + 80);
+		*/
 	}
 
+	/*
 	ofSetColor(ofColor::gray);
 	for (int i = 0; i < (int)dir.size(); i++) {
-		if (i == currentImage) {
-			ofSetColor(ofColor::red);
-		}
-		else {
-			ofSetColor(ofColor::blueSteel);
-		}
-		string fileInfo = "file " + ofToString(i + 1) + " = " + dir.getName(i);
-		ofDrawBitmapString(fileInfo, 50, i * 20 + 50);
+	if (i == currentImage) {
+	ofSetColor(ofColor::red);
 	}
+	else {
+	ofSetColor(ofColor::blueSteel);
+	}
+	string fileInfo = "file " + ofToString(i + 1) + " = " + dir.getName(i);
+	ofDrawBitmapString(fileInfo, 50, i * 20 + 50);
+	}
+	*/
 }
 
 float luminanceFunction(ofColor color) {
@@ -467,6 +521,7 @@ int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
 
+	/*
 	if (dir.size() > 0) {
 
 	switch (key) {
@@ -485,6 +540,7 @@ void ofApp::keyPressed(int key) {
 	}
 
 	}
+	*/
 }
 
 //--------------------------------------------------------------
@@ -499,17 +555,42 @@ void ofApp::mouseMoved(int x, int y) {
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button) {
-
+	if (button == OF_MOUSE_BUTTON_LEFT)
+	{
+		if (selectedImage != NULL)
+		{
+			Vector2D size = selectedImage->GetSize();
+			Vector2D gpos = selectedImage->GetGrabbedPosition();
+			x = MAX(0, MIN(x-gpos.x, ofGetWindowWidth() - size.x));
+			y = MAX(0, MIN(y-gpos.y, ofGetWindowHeight() - size.y));
+			selectedImage->SetPos(x, y);
+		}
+	}
 }
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button) {
-
+	if (button == OF_MOUSE_BUTTON_LEFT)
+	{
+		for (int i=0; i<images.size(); i++)
+		{
+			ThumbObject* img = images[i];
+			Vector2D pos = img->GetPos();
+			Vector2D size = img->GetSize();
+			if (x >= pos.x && x <= pos.x+size.x && y >= pos.y && y <= pos.y+size.y)
+			{
+				selectedImage = img;
+				selectedImage->SetGrabbedPosition(x-pos.x, y-pos.y);
+				break;
+			}
+		}
+	}
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button) {
-
+	if (button == OF_MOUSE_BUTTON_LEFT)
+		selectedImage = NULL;
 }
 
 //--------------------------------------------------------------
