@@ -5,7 +5,13 @@
 #include "ofxOpenCv.h"
 #endif
 
+using cv::Mat;
+
 #define M_PI 3.14159265358979323846
+
+const double kDistanceCoef = 4.0;
+const int kMaxMatchingSize = 50;
+const int kMinMatchingSize = 3;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -98,9 +104,17 @@ void ofApp::keyPressed(int key) {
 	}
 
 }
+
+
+
+
 float luminanceFunction(ofColor color) {
 	return (0.2126 * (float)color.r + 0.7152 * (float)color.g + 0.0722 * (float)color.b);
 }
+
+
+
+
 
 float ofApp::calculateLuminance(int image) {
 	ofImage currentImage = images[image];
@@ -145,6 +159,9 @@ m_col ofApp::calculateColor(int image) {
 	//imagePixels.
 	return sumColor;
 }
+
+
+
 
 double* ofApp :: calculateGabor(int image, double* avgArray) {
 	//the image we want to fetch from
@@ -219,6 +236,9 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 
 }
 
+
+
+
 double* ofApp::calculateEdges(int image, double* avgArray) {
 	//the image we want to fetch from
 	ofImage currentImage = images[image];
@@ -260,10 +280,6 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 	img2.setFromPixels(outputImage.getPixels());
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 	cv::OutputArray outputArr (m2);
-
-	//this array contains all averages of the values of the image when applied a certain angle of the Gabor filter
-
-
 
 	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
 	for (int i = 0; i < 4; i++) {
@@ -328,6 +344,90 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 }
 
+
+
+
+
+//using orb to check out if two images have similar descriptors
+bool ofApp::detectMatchingFeatures(int image1, int image2) {
+	//the first image we want to fetch from
+	ofImage image1Of = images[image1];
+	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
+	image1Of.setImageType(OF_IMAGE_GRAYSCALE);
+	//the image's pixels
+	ofPixels image1Pixels = image1Of.getPixels();
+	//the input image matrix
+	ofxCvGrayscaleImage img1;
+	img1.setFromPixels(image1Pixels);
+	cv::Mat m1 = ofxCv::toCv(img1.getPixels());
+
+	//the second image we want to fetch from
+	ofImage image2Of = images[image2];
+	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
+	image2Of.setImageType(OF_IMAGE_GRAYSCALE);
+	//the image's pixels
+	ofPixels image2Pixels = image2Of.getPixels();
+	//the input image matrix
+	ofxCvGrayscaleImage img2;
+	img2.setFromPixels(image2Pixels);
+	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
+
+	vector<cv::KeyPoint> kpts1;
+	vector<cv::KeyPoint> kpts2;
+
+	Mat desc1;
+	Mat desc2;
+
+	vector<cv::DMatch> matches;
+
+	//this will detect feautres in both images
+	detectAndCompute(m1, kpts1, desc1);
+	detectAndCompute(m2, kpts1, desc2);
+
+	//now we are going to compare them to see if we find any matches
+	match(desc1, desc2, matches);
+
+	//now, we will apply a match mask
+	vector<char> match_mask(matches.size(), 1);
+
+	int counterObjects = 0;
+
+	for (int i = 0; i < matches.size();i++) {
+		if (matches[i].distance < kDistanceCoef) {
+			counterObjects++;
+		}
+	}
+
+	if (counterObjects < kMinMatchingSize) {
+		return false;
+	}
+	else return true;
+}
+
+
+ void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc) {
+
+		cv::Ptr<cv::ORB> orb = cv::ORB::create();
+		orb->detectAndCompute(img, Mat(), kpts, desc);
+}
+
+void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches) {
+	 matches.clear();
+		 cv::BFMatcher desc_matcher(cv::NORM_L2, true);
+		 desc_matcher.match(desc1, desc2, matches, Mat());
+	 std::sort(matches.begin(), matches.end());
+	 while (matches.front().distance * kDistanceCoef < matches.back().distance) {
+		 matches.pop_back();
+	 }
+	 while (matches.size() > kMaxMatchingSize) {
+		 matches.pop_back();
+	 }
+ }
+
+
+
+
+//haar face detection
 int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
 	ofImage currentImage = images[image];
 
