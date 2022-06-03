@@ -398,10 +398,7 @@ bool ofApp::detectMatchingFeatures(int image1, int image2) {
 		}
 	}
 
-	if (counterObjects < kMinMatchingSize) {
-		return false;
-	}
-	else return true;
+	return (counterObjects >= kMinMatchingSize);
 }
 
 
