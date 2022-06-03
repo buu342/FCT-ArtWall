@@ -194,7 +194,7 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	//aplicar a m�dia
 	sum = sum / matSize;
 
-	ofxCv::toOf(m3, *outputImage);
+	ofxCv::toOf(m3, outputImage);
 	string direc = dir.getPath(image) + "angle-" + to_string(i);
 
 	//outputImage.save("test"+ to_string(i)+".jpg");
@@ -305,8 +305,8 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 		sum = sum / matSize;
 
 		//converter em imagem para podermos guardar
-		ofxCv::toOf(m3, *outputImage);
-		outputImage->save("toast" + to_string(i) + ".jpg");
+		ofxCv::toOf(m3, outputImage);
+		outputImage.save("toast" + to_string(i) + ".jpg");
 
 		//guardar a m�dia na posi��o adequada do array
 
@@ -319,30 +319,30 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 }
 
-//dividir pelo n�mero de frames e pelo tamanho de cada frame
+//dividir pelo número de frames e pelo tamanho de cada frame
 int ofApp::detectCut(int image1, int image2) {
 
 	//the first image we want to fetch from
 	ofImage image1Of = *images[image1]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
+	image1Of.setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
+	ofPixels image1Pixels = image1Of.getPixels();
 	//the input image matrix
 	ofxCvGrayscaleImage img1;
 	img1.setFromPixels(image1Pixels);
 	cv::Mat m1 = ofxCv::toCv(img1.getPixels());
 
 	//the second image we want to fetch from
-	image1Of->setImageType(OF_IMAGE_GRAYSCALE);
-	ofPixels image1Pixels = image1Of->getPixels();
 	ofImage image2Of = *images[image2]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
+	image2Of.setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
+	ofPixels image2Pixels = image2Of.getPixels();
 	//the input image matrix
 	ofxCvGrayscaleImage img2;
 	img2.setFromPixels(image2Pixels);
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
-	image2Of->setImageType(OF_IMAGE_GRAYSCALE);
-	ofPixels image2Pixels = image2Of->getPixels();
 
 
 	cv::MatND hist1;
@@ -367,7 +367,7 @@ int ofApp::detectCut(int image1, int image2) {
 	double maxVal2 = 0;
 	cv::minMaxLoc(hist2, 0, &maxVal2, 0, 0);
 
-	//calcular as difs entre os dois histogramas com cv::compareHist(), em que o method � a constante "HISTCMP_CHISQR "
+	//calcular as difs entre os dois histogramas com cv::compareHist(), em que o method é a constante "HISTCMP_CHISQR "
 
 	// Needs to return something to compile
 	return 0;
