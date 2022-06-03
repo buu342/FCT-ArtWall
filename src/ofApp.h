@@ -50,6 +50,6 @@ public:
 	ofDirectory dir;
 	vector<ThumbObject*> images;
 
-	ThumbObject* selectedImage;
+	int currentImage;
 
 };
