@@ -247,7 +247,7 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	//aplicar a m�dia
 	sum = sum / matSize;
 
-	ofxCv::toOf(m3, outputImage);
+	ofxCv::toOf(m3, *outputImage);
 	string direc = dir.getPath(image) + "angle-" + to_string(i);
 
 	//outputImage.save("test"+ to_string(i)+".jpg");
@@ -357,8 +357,8 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 		sum = sum / matSize;
 
 		//converter em imagem para podermos guardar
-		ofxCv::toOf(m3, outputImage);
-		outputImage.save("toast" + to_string(i) + ".jpg");
+		ofxCv::toOf(m3, *outputImage);
+		outputImage->save("toast" + to_string(i) + ".jpg");
 
 		//guardar a m�dia na posi��o adequada do array
 
@@ -378,22 +378,22 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 //using orb to check out if two images have similar descriptors
 bool ofApp::detectMatchingFeatures(int image1, int image2) {
 	//the first image we want to fetch from
-	ofImage image1Of = images[image1];
+	ofImage* image1Of = images[image1]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
-	image1Of.setImageType(OF_IMAGE_GRAYSCALE);
+	image1Of->setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
-	ofPixels image1Pixels = image1Of.getPixels();
+	ofPixels image1Pixels = image1Of->getPixels();
 	//the input image matrix
 	ofxCvGrayscaleImage img1;
 	img1.setFromPixels(image1Pixels);
 	cv::Mat m1 = ofxCv::toCv(img1.getPixels());
 
 	//the second image we want to fetch from
-	ofImage image2Of = images[image2];
+	ofImage* image2Of = images[image2]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
-	image2Of.setImageType(OF_IMAGE_GRAYSCALE);
+	image2Of->setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
-	ofPixels image2Pixels = image2Of.getPixels();
+	ofPixels image2Pixels = image2Of->getPixels();
 	//the input image matrix
 	ofxCvGrayscaleImage img2;
 	img2.setFromPixels(image2Pixels);
