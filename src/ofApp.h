@@ -44,7 +44,7 @@ public:
 	bool ofApp::detectMatchingFeatures(int image1, int image2);
 	void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches);
 	void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc);
-	int ofApp::detectCut(int image1, int image2);
+	double ofApp::detectCut(int image1, int image2);
 
 	// we will have a dynamic number of images, based on the content of a directory:
 	ofDirectory dir;
