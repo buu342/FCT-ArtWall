@@ -389,8 +389,8 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 }
 
-//dividir pelo número de frames e pelo tamanho de cada frame
-int ofApp::detectCut(int image1, int image2) {
+//dividir pelo n�mero de frames e pelo tamanho de cada frame
+double ofApp::detectCut(int image1, int image2) {
 
 	//the first image we want to fetch from
 	ofImage image1Of = *images[image1]->GetImage();
@@ -428,19 +428,19 @@ int ofApp::detectCut(int image1, int image2) {
 		true, // the histogram is uniform
 		false);
 	double maxVal1 = 0;
-	cv::minMaxLoc(hist1, 0, &maxVal1, 0, 0);
+	//cv::minMaxLoc(hist1, 0, &maxVal1, 0, 0);
 
 	cv::calcHist(&m2, 1, channels, cv::Mat(), // do not use mask
 		hist2, 1, histSize, ranges,
 		true, // the histogram is uniform
 		false);
 	double maxVal2 = 0;
-	cv::minMaxLoc(hist2, 0, &maxVal2, 0, 0);
+	//cv::minMaxLoc(hist2, 0, &maxVal2, 0, 0);
 
-	//calcular as difs entre os dois histogramas com cv::compareHist(), em que o method é a constante "HISTCMP_CHISQR "
-
+	//calcular as difs entre os dois histogramas com cv::compareHist(), em que o method � a constante "HISTCMP_CHISQR "
+	double comparison = cv::compareHist(hist1, hist2, cv::HISTCMP_CHISQR);
 	// Needs to return something to compile
-	return 0;
+	return comparison;
 }
 
 
