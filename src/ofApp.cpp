@@ -21,20 +21,24 @@ void ofApp::setup() {
 	//set up the haar finder
 	ofxCvHaarFinder hF = ofxCvHaarFinder();
 	hF.setup("haarcascade_frontalface_default.xml");
-
+	ofSetVerticalSync(true);
 
 	dir.listDir("images/of_logos/");
 	dir.allowExt("jpg"); 
 	dir.sort(); // in linux the file system doesn't return file lists ordered in alphabetical order
 
-				//allocate the vector to have as many ofImages as files
+	// Allocate the vector to have as many ThumbObject as files
 	if (dir.size()) {
 		images.resize(dir.size());
 	}
 
 	// you can now iterate through the files and load them into the ofImage vector
 	for (size_t i = 0; i < images.size(); i++) {
-		images[i] = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
+		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
+		if (img->GetThumbType() == None)
+			delete img;
+		else
+			images[i] = img;
 	}
 	selectedImage = NULL;
 
@@ -90,6 +94,7 @@ void ofApp::update() {
 
 		// Set the actual size
 		img->SetSize(size.x+scaleamount, size.y+scaleamount);
+		img->update();
 	}
 }
 
@@ -97,12 +102,23 @@ void ofApp::update() {
 void ofApp::draw() {
 
 	if (dir.size() > 0) {
+		ofSetColor(ofColor::white);
 		for (int i=0; i<images.size(); i++) {
 			ThumbObject* img = images[i];
 			Vector2D pos = img->GetPos();
 			Vector2D size = img->GetSize();
-			ofSetColor(ofColor::white);
-			img->GetImage()->draw(pos.x, pos.y, size.x, size.y);
+			switch (img->GetThumbType())
+			{
+				case Image:
+					img->GetImage()->draw(pos.x, pos.y, size.x, size.y);
+					break;
+				case GIF:
+					img->GetGIF()->draw(pos.x, pos.y, size.x, size.y);
+					break;
+				case Video:
+					img->GetVideo()->draw(pos.x, pos.y, size.x, size.y);
+					break;
+			}
 		}
 
 		/*
@@ -150,7 +166,7 @@ float ofApp::calculateLuminance(int image) {
 	ofImage* currentImage = images[image]->GetImage();
 	ofPixels imagePixels = currentImage->getPixels();
 	float sumLuminance = 0;
-	int vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
+	size_t vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
 	if (vectorSize > 0) {
 		for (int i = 0; i < vectorSize; i++) {
 			ofColor colorAtIndex = imagePixels.getColor(i);

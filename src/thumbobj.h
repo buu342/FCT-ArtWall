@@ -9,21 +9,33 @@ typedef struct {
 	float y;
 } Vector2D;
 
+enum ThumbType {
+	None,
+	Image,
+	GIF,
+	Video
+};
+
 class ThumbObject
 {
 	private:
-		ofImage* m_img;
-		string   m_imgpath;
-		Vector2D m_imgrealsize;
-		Vector2D m_imgpos;
-		Vector2D m_imgsize;
-		float    m_imgrot;
-		Vector2D m_grabbedpos;
+		void*     m_img;
+		ThumbType m_imgtype;
+		string    m_imgpath;
+		Vector2D  m_imgrealsize;
+		Vector2D  m_imgpos;
+		Vector2D  m_imgsize;
+		float     m_imgrot;
+		Vector2D  m_grabbedpos;
 
 	public:
 		ThumbObject(string path, float x, float y);
 		~ThumbObject();
+		void update();
 		ofImage* GetImage();
+		ofImage* GetGIF();
+		ofVideoPlayer* GetVideo();
+		ThumbType GetThumbType();
 		Vector2D GetPos();
 		float GetRotation();
 		Vector2D GetRealSize();

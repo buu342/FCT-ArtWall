@@ -51,5 +51,4 @@ public:
 	vector<ThumbObject*> images;
 
 	ThumbObject* selectedImage;
-
 };
