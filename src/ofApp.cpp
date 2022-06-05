@@ -65,7 +65,7 @@ void ofApp::setup() {
 		if (img->GetThumbType() == Video)
 		{
 			ofVideoPlayer* vid = img->GetVideo();
-			//double vidCut = vidDetectCut(vid);
+			double vidCut = vidDetectCut(vid);
 		}
 		images[imagecount++] = img;
 	}
@@ -495,7 +495,11 @@ double ofApp::vidDetectCut(ofVideoPlayer * vid) {
 	while (fCounter < vid->getTotalNumFrames()) {
 		ofPixels currFrame = vid->getPixels();
 
-		fCounter++;
+		fCounter+=5;
+		vid->nextFrame();
+		vid->nextFrame();
+		vid->nextFrame();
+		vid->nextFrame();
 		vid->nextFrame();
 
 		ofPixels nextFrame = currFrame;
