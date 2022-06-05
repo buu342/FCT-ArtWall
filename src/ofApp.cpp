@@ -47,6 +47,12 @@ void ofApp::setup() {
 			float ratio = img->GetMaxSize().x / img->GetMaxSize().y;
 			img->SetMaxSize({appsize.x/2, appsize.y/2*ratio});
 		}
+		if (img->GetThumbType() == Video)
+		{
+			ofVideoPlayer* vid = img->GetVideo();
+			double vidCut = vidDetectCut(vid);
+
+		}
 		images[imagecount++] = img;
 	}
 	selectedImage = NULL;
@@ -409,29 +415,50 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 }
 
-//dividir pelo n�mero de frames e pelo tamanho de cada frame
-double ofApp::detectCut(int image1, int image2) {
+double ofApp::vidDetectCut(ofVideoPlayer * vid) {
+	double cutTotal = 0;
+	int fCounter = 0;
 
-	//the first image we want to fetch from
-	ofImage image1Of = *images[image1]->GetImage();
+	vid->firstFrame();
+
+	while (fCounter < vid->getTotalNumFrames()) {
+		ofPixels currFrame = vid->getPixels();
+
+		fCounter++;
+		vid->nextFrame();
+
+		ofPixels nextFrame = currFrame;
+		if (fCounter < vid->getTotalNumFrames()) {
+
+			nextFrame = vid->getPixels();
+		}
+
+		double val = detectCut(currFrame, nextFrame);
+		cutTotal += val;
+
+	}
+	return (cutTotal) / (fCounter * vid->getHeight() * vid->getWidth());
+}
+
+//dividir pelo n�mero de frames e pelo tamanho de cada frame
+double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of) {
+
+
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
 	image1Of.setImageType(OF_IMAGE_GRAYSCALE);
-	//the image's pixels
-	ofPixels image1Pixels = image1Of.getPixels();
+
 	//the input image matrix
 	ofxCvGrayscaleImage img1;
-	img1.setFromPixels(image1Pixels);
+	img1.setFromPixels(image1Of);
 	cv::Mat m1 = ofxCv::toCv(img1.getPixels());
 
-	//the second image we want to fetch from
-	ofImage image2Of = *images[image2]->GetImage();
+
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
 	image2Of.setImageType(OF_IMAGE_GRAYSCALE);
-	//the image's pixels
-	ofPixels image2Pixels = image2Of.getPixels();
+
 	//the input image matrix
 	ofxCvGrayscaleImage img2;
-	img2.setFromPixels(image2Pixels);
+	img2.setFromPixels(image2Of);
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 
 
@@ -448,14 +475,14 @@ double ofApp::detectCut(int image1, int image2) {
 		true, // the histogram is uniform
 		false);
 	double maxVal1 = 0;
-	//cv::minMaxLoc(hist1, 0, &maxVal1, 0, 0);
+	cv::minMaxLoc(hist1, 0, &maxVal1, 0, 0);
 
 	cv::calcHist(&m2, 1, channels, cv::Mat(), // do not use mask
 		hist2, 1, histSize, ranges,
 		true, // the histogram is uniform
 		false);
 	double maxVal2 = 0;
-	//cv::minMaxLoc(hist2, 0, &maxVal2, 0, 0);
+	cv::minMaxLoc(hist2, 0, &maxVal2, 0, 0);
 
 	//calcular as difs entre os dois histogramas com cv::compareHist(), em que o method � a constante "HISTCMP_CHISQR "
 	double comparison = cv::compareHist(hist1, hist2, cv::HISTCMP_CHISQR);
