@@ -9,7 +9,7 @@
 
 #include "thumbobj.h"
 
-
+extern Vector2D appsize;
 
 struct m_col {
 	float red;
@@ -52,4 +52,5 @@ public:
 	int imagecount;
 
 	ThumbObject* selectedImage;
+	ThumbObject* highlightedImage;
 };

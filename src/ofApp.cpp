@@ -11,7 +11,7 @@ using cv::Mat;
 
 #define M_PI 3.14159265358979323846
 #define ESCAPESPEED 100
-#define SCALESPEED 5
+#define SCALESPEED 1
 
 const double kDistanceCoef = 4.0;
 const int kMaxMatchingSize = 50;
@@ -41,10 +41,17 @@ void ofApp::setup() {
 			delete img;
 			continue;
 		}
+		if (img->GetMaxSize().x > appsize.x/2 || img->GetMaxSize().y > appsize.y/2)
+		{
+			float ratio = img->GetMaxSize().x / img->GetMaxSize().y;
+			img->SetMaxSize({appsize.x/2, appsize.y/2*ratio});
+		}
 		images[imagecount++] = img;
 	}
 	selectedImage = NULL;
+	highlightedImage = NULL;
 
+	// Draw the background
 	ofBackground(ofColor::black);
 }
 
@@ -78,7 +85,7 @@ void ofApp::update() {
 			for (int j=0; j<colcount; j++)
 			{
 				// Skip the current selected image
-				if (selectedImage == collisions[j])
+				if (highlightedImage == collisions[j])
 					continue;
 
 				// Push the object we're colliding with away
@@ -96,20 +103,20 @@ void ofApp::update() {
 				// Scale down the largest image if we're still overlapping
 				if (img->IsOverlapping(images[j]))
 				{
-					if (collisions[j]->GetSize() > img->GetSize() && collisions[j]->GetSize() > collisions[j]->GetMinSize())
-						collisions[j]->SetSize(collisions[j]->GetSize() - 1);
-					else if (selectedImage != img && img->GetSize() > img->GetMinSize())
-						img->SetSize(img->GetSize() - 1);
+					if ((highlightedImage == img || collisions[j]->GetSize() > img->GetSize()) && collisions[j]->GetSize() > collisions[j]->GetMinSize())
+						collisions[j]->SetSize(collisions[j]->GetSize() - SCALESPEED);
+					else if (highlightedImage != img && img->GetSize() > img->GetMinSize())
+						img->SetSize(img->GetSize() - SCALESPEED);
 				}
 			}
 		}
 		
 		// Enlarge the image if it is not colliding with anything
-		if (colcount == 0 && img->GetSize() < img->GetMaxSize())
-			img->SetSize(img->GetSize() + 1);
+		if ((colcount == 0 || img == highlightedImage) && img->GetSize() < img->GetMaxSize())
+			img->SetSize(img->GetSize() + SCALESPEED);
 
 		// Don't allow the image to go out of bounds
-		img->SetPos(MAX(0, MIN(img->GetPos().x, ofGetWindowWidth() -  img->GetSize().x)), MAX(0, MIN(img->GetPos().y, ofGetWindowHeight() - img->GetSize().y)));
+		img->SetPos(MAX(0, MIN(img->GetPos().x, ofGetWindowWidth() - img->GetSize().x)), MAX(0, MIN(img->GetPos().y, ofGetWindowHeight() - img->GetSize().y)));
 
 		// Clear the memory used by the vector
 		collisions.clear();
@@ -594,6 +601,7 @@ void ofApp::mouseDragged(int x, int y, int button) {
 void ofApp::mousePressed(int x, int y, int button) {
 	if (button == OF_MOUSE_BUTTON_LEFT)
 	{
+		bool selected = false;
 		for (int i=0; i<imagecount; i++)
 		{
 			ThumbObject* img = images[i];
@@ -603,11 +611,15 @@ void ofApp::mousePressed(int x, int y, int button) {
 			{
 				selectedImage = img;
 				selectedImage->SetGrabbedPosition(x-pos.x, y-pos.y);
+				highlightedImage = img;
 				images[i] = images[0];
 				images[0] = img;
+				selected = true;
 				break;
 			}
 		}
+		if (!selected)
+			highlightedImage = NULL;
 	}
 }
 
@@ -629,7 +641,7 @@ void ofApp::mouseExited(int x, int y) {
 
 //--------------------------------------------------------------
 void ofApp::windowResized(int w, int h) {
-
+	appsize = {(float)w, (float)h};
 }
 
 //--------------------------------------------------------------
