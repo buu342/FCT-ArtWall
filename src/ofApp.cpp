@@ -34,7 +34,8 @@ void ofApp::setup() {
 	}
 
 	// you can now iterate through the files and load them into the ofImage vector
-	for (size_t i=0; i<images.size(); i++) {
+	for (size_t i=0; i<images.size(); i++) 
+	{
 		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
 		if (img->GetThumbType() == None)
 		{
@@ -101,12 +102,13 @@ void ofApp::update() {
 				collisions[j]->SetPos(escape);
 
 				// Scale down the largest image if we're still overlapping
-				if (img->IsOverlapping(images[j]))
+				if (img->IsOverlapping(collisions[j]))
 				{
-					if ((highlightedImage == img || collisions[j]->GetSize() > img->GetSize()) && collisions[j]->GetSize() > collisions[j]->GetMinSize())
-						collisions[j]->SetSize(collisions[j]->GetSize() - SCALESPEED);
-					else if (highlightedImage != img && img->GetSize() > img->GetMinSize())
-						img->SetSize(img->GetSize() - SCALESPEED);
+					ThumbObject* largest = img;
+					if (img->IsOverlapping(collisions[j]) && largest->GetSize() < images[j]->GetSize())
+						largest = images[j];
+					if (highlightedImage != largest && largest->GetSize() > largest->GetMinSize())
+						largest->SetSize(largest->GetSize() - SCALESPEED);
 				}
 			}
 		}
