@@ -49,6 +49,7 @@ public:
 	// we will have a dynamic number of images, based on the content of a directory:
 	ofDirectory dir;
 	vector<ThumbObject*> images;
+	int imagecount;
 
 	ThumbObject* selectedImage;
 };

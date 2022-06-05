@@ -2,10 +2,11 @@
 
 ThumbObject::ThumbObject(string path, float x, float y)
 {
-	printf("Loaded file '%s'\n", path.c_str());
+	float ratio;
 	std::string ext = path;
 	ext = ext.substr(ext.find_last_of(".") + 1);
 	std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
 	if (ext == "mp4" || ext == "mov" || ext == "avi" || ext == "mkv" || ext == "wmv" || ext == "flv" || ext == "mpeg")
 	{
 		ofVideoPlayer* img = new ofVideoPlayer();
@@ -19,7 +20,8 @@ ThumbObject::ThumbObject(string path, float x, float y)
 		img->play();
 		this->m_img = img;
 		this->m_imgtype = Video;
-		this->m_imgrealsize = {img->getWidth(), img->getHeight()};
+		this->m_imgsizereal = {img->getWidth(), img->getHeight()};
+		printf("Loaded video '%s'\n", path.c_str());
 	}
 	else
 	{
@@ -32,13 +34,23 @@ ThumbObject::ThumbObject(string path, float x, float y)
 		}
 		this->m_img = img;
 		if (ext == "gif")
+		{
 			this->m_imgtype = GIF;
+			printf("Loaded GIF '%s'\n", path.c_str());
+		}
 		else
+		{
 			this->m_imgtype = Image;
-		this->m_imgrealsize = {img->getWidth(), img->getHeight()};
+			printf("Loaded image '%s'\n", path.c_str());
+		}
+		this->m_imgsizereal = {img->getWidth(), img->getHeight()};
 	}
+
+	ratio = this->m_imgsizereal.x/this->m_imgsizereal.y;
 	this->m_imgpath = path;
-	this->m_imgsize = {1.0f, 1.0f};
+	this->m_imgsizemin = {ratio*64.0f, 1.0f*64.0f};
+	this->m_imgsizemax = this->m_imgsizereal;
+	this->m_imgsize = this->m_imgsizemin;
 	this->m_imgpos = {x, y};
 	this->m_imgrot = 0.0f;
 	this->m_grabbedpos = {0.0f, 0.0f};
@@ -87,7 +99,7 @@ float ThumbObject::GetRotation()
 
 Vector2D ThumbObject::GetRealSize()
 {
-	return this->m_imgrealsize;
+	return this->m_imgsizereal;
 }
 
 Vector2D ThumbObject::GetSize()
@@ -100,10 +112,25 @@ Vector2D ThumbObject::GetGrabbedPosition()
 	return this->m_grabbedpos;
 }
 
+Vector2D ThumbObject::GetMinSize()
+{
+	return this->m_imgsizemin;
+}
+
+Vector2D ThumbObject::GetMaxSize()
+{
+	return this->m_imgsizemax;
+}
+
 void ThumbObject::SetPos(float x, float y)
 {
 	this->m_imgpos.x = x;
 	this->m_imgpos.y = y;
+}
+
+void ThumbObject::SetPos(Vector2D pos)
+{
+	this->m_imgpos = pos;
 }
 
 void ThumbObject::SetRotation(float ang)
@@ -117,10 +144,25 @@ void ThumbObject::SetSize(float x, float y)
 	this->m_imgsize.y = y;
 }
 
+void ThumbObject::SetSize(Vector2D size)
+{
+	this->m_imgsize = size;
+}
+
 void ThumbObject::SetGrabbedPosition(float x, float y)
 {
 	this->m_grabbedpos.x = x;
 	this->m_grabbedpos.y = y;
+}
+
+void ThumbObject::SetMinSize(Vector2D size)
+{
+	this->m_imgsizemin = size;
+}
+
+void ThumbObject::SetMaxSize(Vector2D size)
+{
+	this->m_imgsizemax = size;
 }
 
 bool ThumbObject::IsOverlapping(ThumbObject* other)

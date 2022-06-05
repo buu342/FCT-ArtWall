@@ -10,6 +10,7 @@
 using cv::Mat;
 
 #define M_PI 3.14159265358979323846
+#define ESCAPESPEED 100
 #define SCALESPEED 5
 
 const double kDistanceCoef = 4.0;
@@ -33,12 +34,14 @@ void ofApp::setup() {
 	}
 
 	// you can now iterate through the files and load them into the ofImage vector
-	for (size_t i = 0; i < images.size(); i++) {
+	for (size_t i=0; i<images.size(); i++) {
 		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
 		if (img->GetThumbType() == None)
+		{
 			delete img;
-		else
-			images[i] = img;
+			continue;
+		}
+		images[imagecount++] = img;
 	}
 	selectedImage = NULL;
 
@@ -47,53 +50,71 @@ void ofApp::setup() {
 
 //--------------------------------------------------------------
 void ofApp::update() {
-	for (int i=0; i<images.size(); i++) {
+	for (int i=0; i<imagecount; i++) {
+
+		// Initialize a bunch of helper variables
 		ThumbObject* img = images[i];
-		Vector2D pos = img->GetPos();
 		Vector2D size = img->GetSize();
-		Vector2D realsize = img->GetRealSize();
-		float scaleamount = SCALESPEED;
-
-		// Check if the scale won't go out of bounds
-		if ((pos.x + size.x+SCALESPEED > ofGetWindowWidth()) || (pos.y + size.y+SCALESPEED > ofGetWindowHeight()))
-		{
-			if (pos.x + size.x+SCALESPEED > ofGetWindowWidth())
-			{
-				scaleamount -= pos.x + size.x+SCALESPEED - ofGetWindowWidth();
-			}
-
-			if (pos.y + size.y+scaleamount > ofGetWindowHeight())
-			{
-				scaleamount -= pos.y + size.y+scaleamount - ofGetWindowHeight();
-			}
-		}
-
-		// Don't scale larger than the original size
-		if (size.x+scaleamount > realsize.x)
-			scaleamount -= size.x+scaleamount - realsize.x;
-		if (size.y+scaleamount > realsize.y)
-			scaleamount -= size.y+scaleamount - realsize.y;
+		vector<ThumbObject*> collisions;
+		int colcount = 0;
+		collisions.resize(imagecount);
 
 		// Check for overlaps
-		for (int j=0; j<images.size(); j++)
+		for (int j=0; j<imagecount; j++) {
+
+			// Skip ourselves
+			if (i == j)
+				continue;
+
+			// If an image overlaps, add it to our list of collisions
+			if (img->IsOverlapping(images[j]))
+				collisions[colcount++] = images[j];
+		}
+
+		// If we have collisions
+		if (colcount > 0)
 		{
-			if (i != j)
+			// Iterate through all collided objects
+			for (int j=0; j<colcount; j++)
 			{
-				while (img->WouldOverlap(images[j], scaleamount))
+				// Skip the current selected image
+				if (selectedImage == collisions[j])
+					continue;
+
+				// Push the object we're colliding with away
+				Vector2D center1 = img->GetPos() + img->GetSize()/2;
+				Vector2D center2 = collisions[j]->GetPos() + collisions[j]->GetSize()/2;
+				Vector2D escape = center2 - center1;
+				Vector2D escapeneg;
+				float distance = sqrtf((center2.x-center1.x)*(center2.x-center1.x) + (center2.y-center1.y)*(center2.y-center1.y));
+				escape = escape / sqrtf(escape.x*escape.x + escape.y*escape.y);
+				escape = escape*ESCAPESPEED*(1/MAX(1, distance));
+				escape = collisions[j]->GetPos() + escape;
+				escape = {MAX(0, MIN(escape.x, ofGetWindowWidth() - img->GetSize().x)), MAX(0, MIN(escape.y, ofGetWindowHeight() - img->GetSize().y))};
+				collisions[j]->SetPos(escape);
+
+				// Scale down the largest image if we're still overlapping
+				if (img->IsOverlapping(images[j]))
 				{
-					Vector2D otherpos = images[j]->GetPos();
-					if (pos.x + size.x + scaleamount > otherpos.x)
-						scaleamount -= pos.x + size.x + scaleamount - otherpos.x;
-					if (pos.y + size.y + scaleamount > otherpos.y)
-						scaleamount -= pos.y + size.y + scaleamount - otherpos.y;
+					if (collisions[j]->GetSize() > img->GetSize() && collisions[j]->GetSize() > collisions[j]->GetMinSize())
+						collisions[j]->SetSize(collisions[j]->GetSize() - 1);
+					else if (selectedImage != img && img->GetSize() > img->GetMinSize())
+						img->SetSize(img->GetSize() - 1);
 				}
 			}
 		}
-		if (scaleamount < 0)
-			scaleamount = 0;
+		
+		// Enlarge the image if it is not colliding with anything
+		if (colcount == 0 && img->GetSize() < img->GetMaxSize())
+			img->SetSize(img->GetSize() + 1);
 
-		// Set the actual size
-		img->SetSize(size.x+scaleamount, size.y+scaleamount);
+		// Don't allow the image to go out of bounds
+		img->SetPos(MAX(0, MIN(img->GetPos().x, ofGetWindowWidth() -  img->GetSize().x)), MAX(0, MIN(img->GetPos().y, ofGetWindowHeight() - img->GetSize().y)));
+
+		// Clear the memory used by the vector
+		collisions.clear();
+
+		// Call the update function on the image (to play video)
 		img->update();
 	}
 }
@@ -103,7 +124,7 @@ void ofApp::draw() {
 
 	if (dir.size() > 0) {
 		ofSetColor(ofColor::white);
-		for (int i=0; i<images.size(); i++) {
+		for (int i=imagecount-1; i>=0; i--) {
 			ThumbObject* img = images[i];
 			Vector2D pos = img->GetPos();
 			Vector2D size = img->GetSize();
@@ -158,10 +179,6 @@ float luminanceFunction(ofColor color) {
 	return (0.2126 * (float)color.r + 0.7152 * (float)color.g + 0.0722 * (float)color.b);
 }
 
-
-
-
-
 float ofApp::calculateLuminance(int image) {
 	ofImage* currentImage = images[image]->GetImage();
 	ofPixels imagePixels = currentImage->getPixels();
@@ -202,9 +219,6 @@ m_col ofApp::calculateColor(int image) {
 	//imagePixels.
 	return sumColor;
 }
-
-
-
 
 double* ofApp :: calculateGabor(int image, double* avgArray) {
 
@@ -280,9 +294,6 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	
 
 }
-
-
-
 
 double* ofApp::calculateEdges(int image, double* avgArray) {
 	//the image we want to fetch from
@@ -443,7 +454,6 @@ double ofApp::detectCut(int image1, int image2) {
 	return comparison;
 }
 
-
 //using orb to check out if two images have similar descriptors
 bool ofApp::detectMatchingFeatures(int image1, int image2) {
 	//the first image we want to fetch from
@@ -497,7 +507,6 @@ bool ofApp::detectMatchingFeatures(int image1, int image2) {
 	return (counterObjects >= kMinMatchingSize);
 }
 
-
  void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc) {
 
 		cv::Ptr<cv::ORB> orb = cv::ORB::create();
@@ -516,9 +525,6 @@ void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches) {
 		 matches.pop_back();
 	 }
  }
-
-
-
 
 //haar face detection
 int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
@@ -588,7 +594,7 @@ void ofApp::mouseDragged(int x, int y, int button) {
 void ofApp::mousePressed(int x, int y, int button) {
 	if (button == OF_MOUSE_BUTTON_LEFT)
 	{
-		for (int i=0; i<images.size(); i++)
+		for (int i=0; i<imagecount; i++)
 		{
 			ThumbObject* img = images[i];
 			Vector2D pos = img->GetPos();
@@ -597,6 +603,8 @@ void ofApp::mousePressed(int x, int y, int button) {
 			{
 				selectedImage = img;
 				selectedImage->SetGrabbedPosition(x-pos.x, y-pos.y);
+				images[i] = images[0];
+				images[0] = img;
 				break;
 			}
 		}
