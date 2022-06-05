@@ -9,7 +9,7 @@
 
 #include "thumbobj.h"
 
-
+extern Vector2D appsize;
 
 struct m_col {
 	float red;
@@ -24,6 +24,8 @@ public:
 	void setup();
 	void update();
 	void draw();
+
+	void loadDirectory(string directory);
 
 	void keyPressed(int key);
 	void keyReleased(int key);
@@ -44,12 +46,24 @@ public:
 	bool ofApp::detectMatchingFeatures(int image1, int image2);
 	void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches);
 	void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc);
-	double ofApp::detectCut(int image1, int image2);
+	void ofApp::vidThumb(ofVideoPlayer* vid, ofImage* array);
+	double ofApp::vidDetectCut(ofVideoPlayer* vid);
+	double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of);
 
 	// we will have a dynamic number of images, based on the content of a directory:
 	ofDirectory dir;
 	vector<ThumbObject*> images;
+	int imagecount;
 
-	int currentImage;
+	ThumbObject* selectedImage;
+	ThumbObject* highlightedImage;
 
+	// Video player
+	float   vidplayer_alpha;
+	ofImage vidplayer_playbutton;
+	ofImage vidplayer_pausebutton;
+	ofImage vidplayer_forwardbutton;
+	ofImage vidplayer_backwardbutton;
+	ofImage vidplayer_soundbutton;
+	ofImage vidplayer_mutebutton;
 };

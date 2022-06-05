@@ -112,6 +112,9 @@
     <ClCompile Include="..\..\..\addons\ofxCv\libs\ofxCv\src\RunningBackground.cpp">
       <Filter>addons\ofxCv\libs\ofxCv\src</Filter>
     </ClCompile>
+    <ClCompile Include="src\algorithms.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
@@ -309,6 +312,9 @@
     <Filter Include="addons\ofxXmlSettings\libs">
       <UniqueIdentifier>{687714A8-1662-FA1C-261F-50F0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="resources">
+      <UniqueIdentifier>{fc95a50d-e9c9-4878-87d8-f50c49092f29}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ofApp.h">
@@ -464,5 +470,30 @@
     <ClInclude Include="..\..\..\addons\ofxCv\libs\ofxCv\include\ofxCv\ObjectFinder.h">
       <Filter>addons\ofxCv\libs\ofxCv\include\ofxCv</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="resources\haarcascade_frontalface_default.xml">
+      <Filter>resources</Filter>
+    </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\Back.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Forward.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Sound.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Mute.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Play.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Pause.png">
+      <Filter>resources</Filter>
+    </Image>
   </ItemGroup>
 </Project>
