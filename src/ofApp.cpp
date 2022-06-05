@@ -12,6 +12,12 @@ using cv::Mat;
 #define M_PI 3.14159265358979323846
 #define ESCAPESPEED 100
 #define SCALESPEED 1
+#define VIDBARALPHA     128
+#define VIDBARFADESPEED 8
+#define VIDBUTTONSIZE   64
+#define VIDBUTTONSPACE  8
+#define VIDBUTTONCOUNT  4
+#define VIDBUTTONRATIO  (VIDBUTTONSIZE*VIDBUTTONCOUNT + VIDBUTTONSPACE*(VIDBUTTONCOUNT+1))
 
 const double kDistanceCoef = 4.0;
 const int kMaxMatchingSize = 50;
@@ -24,6 +30,15 @@ void ofApp::setup() {
 	hF.setup("haarcascade_frontalface_default.xml");
 	ofSetVerticalSync(true);
 
+	// Initialize the music player button icons
+	vidplayer_playbutton.load("Play.png");
+	vidplayer_pausebutton.load("Pause.png");
+	vidplayer_forwardbutton.load("Forward.png");
+	vidplayer_backwardbutton.load("Back.png");
+	vidplayer_soundbutton.load("Sound.png");
+	vidplayer_mutebutton.load("Mute.png");
+
+	// Get the images from the given directory
 	dir.listDir("images/of_logos/");
 	dir.allowExt("jpg"); 
 	dir.sort(); // in linux the file system doesn't return file lists ordered in alphabetical order
@@ -50,13 +65,13 @@ void ofApp::setup() {
 		if (img->GetThumbType() == Video)
 		{
 			ofVideoPlayer* vid = img->GetVideo();
-			double vidCut = vidDetectCut(vid);
-
+			//double vidCut = vidDetectCut(vid);
 		}
 		images[imagecount++] = img;
 	}
 	selectedImage = NULL;
 	highlightedImage = NULL;
+	vidplayer_alpha = 0;
 
 	// Draw the background
 	ofBackground(ofColor::black);
@@ -99,7 +114,6 @@ void ofApp::update() {
 				Vector2D center1 = img->GetPos() + img->GetSize()/2;
 				Vector2D center2 = collisions[j]->GetPos() + collisions[j]->GetSize()/2;
 				Vector2D escape = center2 - center1;
-				Vector2D escapeneg;
 				float distance = sqrtf((center2.x-center1.x)*(center2.x-center1.x) + (center2.y-center1.y)*(center2.y-center1.y));
 				escape = escape / sqrtf(escape.x*escape.x + escape.y*escape.y);
 				escape = escape*ESCAPESPEED*(1/MAX(1, distance));
@@ -128,17 +142,35 @@ void ofApp::update() {
 
 		// Clear the memory used by the vector
 		collisions.clear();
-
+		
 		// Call the update function on the image (to play video)
 		img->update();
+	}
+
+	// Handle video player buttons alpha
+	if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
+	{
+		if (highlightedImage->IsOverlapping(ofGetMouseX(), ofGetMouseY()))
+		{
+			if (vidplayer_alpha < VIDBARALPHA)
+				vidplayer_alpha += VIDBARFADESPEED;
+		}
+		else
+		{
+			if (vidplayer_alpha > 0)
+				vidplayer_alpha -= VIDBARFADESPEED;
+		}
 	}
 }
 
 //--------------------------------------------------------------
 void ofApp::draw() {
 
-	if (dir.size() > 0) {
+	ofEnableAlphaBlending();
+	if (imagecount > 0) {
 		ofSetColor(ofColor::white);
+
+		// Draw all the images
 		for (int i=imagecount-1; i>=0; i--) {
 			ThumbObject* img = images[i];
 			Vector2D pos = img->GetPos();
@@ -156,6 +188,45 @@ void ofApp::draw() {
 					break;
 			}
 		}
+
+		// Draw the video player buttons
+		if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
+		{
+			float ratio = (highlightedImage->GetSize().x/VIDBUTTONRATIO);
+			float butsize = VIDBUTTONSIZE*ratio;
+			float butbufsize = (VIDBUTTONSIZE+VIDBUTTONSPACE)*ratio;
+			float buffer = VIDBUTTONSPACE*ratio;
+			float bufferh = VIDBUTTONSPACE*ratio/2;
+			Vector2D pos = highlightedImage->GetPos();
+			Vector2D size = highlightedImage->GetSize();
+			ofImage* buttons[VIDBUTTONCOUNT];
+			float buty = pos.y+size.y-butbufsize;
+
+			// Select the buttons to show
+			buttons[0] = &vidplayer_backwardbutton;
+			buttons[1] = highlightedImage->GetVideoPlaying() ? &vidplayer_pausebutton : &vidplayer_playbutton;
+			buttons[2] = &vidplayer_forwardbutton;
+			buttons[3] = highlightedImage->GetVideoMuted() ? &vidplayer_mutebutton : &vidplayer_soundbutton;
+
+			// Draw the button tray
+			ofSetColor(0, 0, 0, vidplayer_alpha);
+			ofDrawRectangle(pos.x, pos.y+size.y-butbufsize, size.x, butbufsize);
+
+			// Draw the buttons
+			for (int j=0; j<VIDBUTTONCOUNT; j++)
+			{
+				float butx = pos.x+(butbufsize)*j+buffer;
+				if (ofGetMouseY() >= buty && ofGetMouseY() <= buty+butbufsize && ofGetMouseX() >= butx && ofGetMouseX() <= butx+butsize)
+					ofSetColor(255, 255, 255, 255);
+				else
+					ofSetColor(255, 255, 255, vidplayer_alpha);
+				buttons[j]->draw(butx, buty+bufferh, butsize, butsize);
+			}
+
+			// Reset drawing values
+			ofSetColor(ofColor::white);
+		}
+		ofDisableAlphaBlending();
 
 		/*
 		ofSetColor(ofColor::gray);
@@ -631,12 +702,59 @@ void ofApp::mousePressed(int x, int y, int button) {
 	if (button == OF_MOUSE_BUTTON_LEFT)
 	{
 		bool selected = false;
+
+		// Handle the highlighted picture first
+		if (highlightedImage != NULL && highlightedImage->IsOverlapping(x, y))
+		{
+			selectedImage = highlightedImage;
+			selectedImage->SetGrabbedPosition(x-highlightedImage->GetPos().x, y-highlightedImage->GetPos().y);
+
+			// Handle video player controls
+			if (highlightedImage->GetThumbType() == Video)
+			{
+				float ratio = (highlightedImage->GetSize().x/VIDBUTTONRATIO);
+				float butsize = VIDBUTTONSIZE*ratio;
+				float butbufsize = (VIDBUTTONSIZE+VIDBUTTONSPACE)*ratio;
+				float buffer = VIDBUTTONSPACE*ratio;
+				Vector2D pos = highlightedImage->GetPos();
+				Vector2D size = highlightedImage->GetSize();
+				float buty = pos.y+size.y-butbufsize;
+				if (y >= buty && y <= buty+butbufsize)
+				{
+					for (int i=0; i<VIDBUTTONCOUNT; i++)
+					{
+						float butx = pos.x+(butbufsize)*i+buffer;
+						if (x >= butx && x <= butx+butsize)
+						{
+							switch (i)
+							{
+								case 0:
+									highlightedImage->AdvanceVideo(-1);
+									break;
+								case 1:
+									highlightedImage->SetVideoPlaying(!highlightedImage->GetVideoPlaying());
+									break;
+								case 2:
+									highlightedImage->AdvanceVideo(1);
+									break;
+								case 3:
+									highlightedImage->SetVideoMuted(!highlightedImage->GetVideoMuted());
+									break;
+							}
+						}
+					}
+				}
+			}
+
+			return;
+		}
+
+		// Otherwise, check which image we pressed
 		for (int i=0; i<imagecount; i++)
 		{
 			ThumbObject* img = images[i];
 			Vector2D pos = img->GetPos();
-			Vector2D size = img->GetSize();
-			if (x >= pos.x && x <= pos.x+size.x && y >= pos.y && y <= pos.y+size.y)
+			if (img->IsOverlapping(x, y))
 			{
 				selectedImage = img;
 				selectedImage->SetGrabbedPosition(x-pos.x, y-pos.y);
@@ -644,9 +762,12 @@ void ofApp::mousePressed(int x, int y, int button) {
 				images[i] = images[0];
 				images[0] = img;
 				selected = true;
+				vidplayer_alpha = 0;
 				break;
 			}
 		}
+
+		// If nothing was selected, remove the highlighted image
 		if (!selected)
 			highlightedImage = NULL;
 	}
@@ -671,6 +792,11 @@ void ofApp::mouseExited(int x, int y) {
 //--------------------------------------------------------------
 void ofApp::windowResized(int w, int h) {
 	appsize = {(float)w, (float)h};
+	for (int i=0; i<imagecount; i++)
+	{
+		float ratio = images[i]->GetMaxSize().x / images[i]->GetMaxSize().y;
+		images[i]->SetMaxSize({appsize.x/2, appsize.y/2*ratio});
+	}
 }
 
 //--------------------------------------------------------------

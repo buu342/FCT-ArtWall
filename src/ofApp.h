@@ -54,4 +54,13 @@ public:
 
 	ThumbObject* selectedImage;
 	ThumbObject* highlightedImage;
+
+	// Video player
+	float   vidplayer_alpha;
+	ofImage vidplayer_playbutton;
+	ofImage vidplayer_pausebutton;
+	ofImage vidplayer_forwardbutton;
+	ofImage vidplayer_backwardbutton;
+	ofImage vidplayer_soundbutton;
+	ofImage vidplayer_mutebutton;
 };

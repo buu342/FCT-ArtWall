@@ -473,4 +473,24 @@
       <Filter>resources</Filter>
     </Xml>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\Back.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Forward.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Sound.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Mute.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Play.png">
+      <Filter>resources</Filter>
+    </Image>
+    <Image Include="resources\Pause.png">
+      <Filter>resources</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

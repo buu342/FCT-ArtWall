@@ -33,40 +33,48 @@ struct Vector2D{
 class ThumbObject
 {
 	private:
-		void*     m_img;
-		ThumbType m_imgtype;
-		string    m_imgpath;
-		Vector2D  m_imgsizereal;
-		Vector2D  m_imgpos;
-		Vector2D  m_imgsize;
-		Vector2D  m_imgsizemin;
-		Vector2D  m_imgsizemax;
-		float     m_imgrot;
+		void*     m_thumb;
+		ThumbType m_thumbtype;
+		string    m_thumbpath;
+		Vector2D  m_thumbsizereal;
+		Vector2D  m_thumbpos;
+		Vector2D  m_thumbsize;
+		Vector2D  m_thumbsizemin;
+		Vector2D  m_thumbsizemax;
 		Vector2D  m_grabbedpos;
+		bool      m_videoplaying;
+		bool      m_videomuted;
 
 	public:
 		ThumbObject(string path, float x, float y);
 		~ThumbObject();
 		void update();
-		ofImage* GetImage();
-		ofImage* GetGIF();
+
+		ofImage*       GetImage();
+		ofImage*       GetGIF();
 		ofVideoPlayer* GetVideo();
-		ThumbType GetThumbType();
-		Vector2D GetPos();
-		float GetRotation();
-		Vector2D GetRealSize();
-		Vector2D GetSize();
-		Vector2D GetMinSize();
-		Vector2D GetMaxSize();
-		Vector2D GetGrabbedPosition();
+		ThumbType      GetThumbType();
+		Vector2D       GetPos();
+		Vector2D       GetRealSize();
+		Vector2D       GetSize();
+		Vector2D       GetMinSize();
+		Vector2D       GetMaxSize();
+		Vector2D       GetGrabbedPosition();
+		bool           GetVideoPlaying();
+		bool           GetVideoMuted();
+
 		void SetPos(float x, float y);
 		void SetPos(Vector2D pos);
-		void SetRotation(float ang);
 		void SetSize(float x, float y);
 		void SetSize(Vector2D size);
 		void SetMinSize(Vector2D size);
 		void SetMaxSize(Vector2D size);
 		void SetGrabbedPosition(float x, float y);
+		void SetVideoPlaying(bool play);
+		void SetVideoMuted(bool muted);
+
+		void AdvanceVideo(int frames);
+		bool IsOverlapping(float x, float y);
+		bool IsOverlapping(Vector2D coord);
 		bool IsOverlapping(ThumbObject* other);
-		bool WouldOverlap(ThumbObject* other, float scale);
 };
