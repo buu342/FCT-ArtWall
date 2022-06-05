@@ -486,6 +486,19 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 }
 
+void ofApp::vidThumb(ofVideoPlayer* vid, ofImage *array) {
+	int fCounter = 0;
+	vid->firstFrame();
+
+	while (fCounter < 10) {
+		ofPixels currFrame = vid->getPixels();
+		ofImage currImage = currFrame;
+		array[fCounter] = currImage;
+		fCounter += 1;
+		vid->setPosition(fCounter/10);
+	}
+}
+
 double ofApp::vidDetectCut(ofVideoPlayer * vid) {
 	double cutTotal = 0;
 	int fCounter = 0;

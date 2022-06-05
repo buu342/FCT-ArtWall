@@ -44,6 +44,7 @@ public:
 	bool ofApp::detectMatchingFeatures(int image1, int image2);
 	void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches);
 	void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc);
+	void ofApp::vidThumb(ofVideoPlayer* vid, ofImage* array);
 	double ofApp::vidDetectCut(ofVideoPlayer* vid);
 	double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of);
 
