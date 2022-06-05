@@ -7,10 +7,11 @@
 #include "ofxOpenCv.h"
 #endif
 
-#define TESTING false
+#define TESTING true
 
-#define ESCAPESPEED 100
-#define SCALESPEED 1
+#define ESCAPESPEED     10.0f
+#define SCALESPEED      1.0f
+#define SCALESPEEDHIGH  SCALESPEED*4
 #define VIDBARALPHA     128
 #define VIDBARFADESPEED 8
 #define VIDBUTTONSIZE   64
@@ -50,16 +51,52 @@ void ofApp::setup() {
 
 //--------------------------------------------------------------
 void ofApp::update() {
-
 	// Iterate through all loaded thumbs
 	for (int i=0; i<imagecount; i++) {
 
 		// Initialize a bunch of helper variables
 		ThumbObject* img = images[i];
+		Vector2D pos = img->GetPos();
 		Vector2D size = img->GetSize();
+		Vector2D sizehalf = img->GetSizeHalf();
 		vector<ThumbObject*> collisions;
 		int colcount = 0;
 		collisions.resize(imagecount);
+
+		// Push the image if it's out of bounds
+		if (img != selectedImage)
+		{
+			Vector2D escape = {0, 0};
+			Vector2D magnitude = {0, 0};
+			if (pos.x-sizehalf.x < 0)
+			{
+				escape.x += 1.0f;
+				magnitude.x -= pos.x-sizehalf.x;
+			}
+			if (pos.x+sizehalf.x > appsize.x)
+			{
+				escape.x -= 1.0f;
+				magnitude.x += pos.x+sizehalf.x - appsize.x;
+			}
+			if (pos.y-sizehalf.y < 0)
+			{
+				escape.y += 1.0f;
+				magnitude.y -= pos.y-sizehalf.y;
+			}
+			if (pos.y+sizehalf.y > appsize.y)
+			{
+				escape.y -= 1.0f;
+				magnitude.y += pos.y+sizehalf.y - appsize.y;
+			}
+
+			// If we have an escape vector, then push the thumb back into bounds
+			if (escape.x != 0 || escape.y != 0)
+			{
+				escape = escape/sqrtf(escape.x*escape.x + escape.y*escape.y);
+				escape = escape*ESCAPESPEED*(magnitude/sizehalf);
+				img->SetPos(img->GetPos()+escape);
+			}
+		}
 
 		// Check for overlaps
 		for (int j=0; j<imagecount; j++) {
@@ -84,34 +121,38 @@ void ofApp::update() {
 					continue;
 
 				// Push the object we're colliding with away
-				Vector2D center1 = img->GetPos() + img->GetSize()/2;
-				Vector2D center2 = collisions[j]->GetPos() + collisions[j]->GetSize()/2;
+				Vector2D center1 = img->GetPos();
+				Vector2D center2 = collisions[j]->GetPos();
 				Vector2D escape = center2 - center1;
-				float distance = sqrtf((center2.x-center1.x)*(center2.x-center1.x) + (center2.y-center1.y)*(center2.y-center1.y));
-				escape = escape / sqrtf(escape.x*escape.x + escape.y*escape.y);
-				escape = escape*ESCAPESPEED*(1/MAX(1, distance));
-				escape = collisions[j]->GetPos() + escape;
-				escape = {MAX(0, MIN(escape.x, ofGetWindowWidth() - img->GetSize().x)), MAX(0, MIN(escape.y, ofGetWindowHeight() - img->GetSize().y))};
-				collisions[j]->SetPos(escape);
+				Vector2D wiggle = {std::rand()%2-1, std::rand()%2-1};
 
-				// Scale down the largest image if we're still overlapping
-				if (img->IsOverlapping(collisions[j]))
-				{
-					ThumbObject* largest = img;
-					if (img->IsOverlapping(collisions[j]) && largest->GetSize() < images[j]->GetSize())
-						largest = images[j];
-					if (highlightedImage != largest && largest->GetSize() > largest->GetMinSize())
-						largest->SetSize(largest->GetSize().x - SCALESPEED, largest->GetSize().y - SCALESPEED/largest->GetSizeRatio());
-				}
+				// Calculate the distance
+				Vector2D maxdist = img->GetSizeHalf() + collisions[j]->GetSizeHalf();
+				float distance = sqrtf((center2.x-center1.x)*(center2.x-center1.x));
+				maxdist = {1-distance/maxdist.x, 1-distance/maxdist.y};
+
+				// Normalize and push
+				escape = escape / sqrtf(escape.x*escape.x + escape.y*escape.y);
+				escape = escape*ESCAPESPEED*maxdist;
+				collisions[j]->SetPos(collisions[j]->GetPos() + escape + wiggle);
+
+				// Scale down the largest image
+				ThumbObject* largest = img;
+				if (largest == highlightedImage || largest->GetSize() < collisions[j]->GetSize())
+				    largest = collisions[j];
+				if (largest->GetSize() > largest->GetMinSize())
+				    largest->SetSize(largest->GetSize().x - SCALESPEED, largest->GetSize().y - SCALESPEED/largest->GetSizeRatio());
 			}
 		}
-		
-		// Enlarge the image if it is not colliding with anything
-		if ((colcount == 0 || img == highlightedImage) && img->GetSize() < img->GetMaxSize())
-			img->SetSize(img->GetSize().x + SCALESPEED, img->GetSize().y + SCALESPEED/img->GetSizeRatio());
 
-		// Don't allow the image to go out of bounds
-		img->SetPos(MAX(0, MIN(img->GetPos().x, ofGetWindowWidth() - img->GetSize().x)), MAX(0, MIN(img->GetPos().y, ofGetWindowHeight() - img->GetSize().y)));
+		// Enlarge the image if it is not colliding with anything or it's highlighted
+		if (img->GetSize() < img->GetMaxSize())
+		{
+			if (img == highlightedImage)
+				img->SetSize(img->GetSize().x + SCALESPEEDHIGH, img->GetSize().y + SCALESPEEDHIGH/img->GetSizeRatio());
+			else if (colcount == 0)
+				img->SetSize(img->GetSize().x + SCALESPEED, img->GetSize().y + SCALESPEED/img->GetSizeRatio());
+		}
 
 		// Clear the memory used by the vector
 		collisions.clear();
@@ -148,18 +189,20 @@ void ofApp::draw() {
 			ThumbObject* img = images[i];
 			Vector2D pos = img->GetPos();
 			Vector2D size = img->GetSize();
+			Vector2D sizehalf = img->GetSizeHalf();
 			switch (img->GetThumbType())
 			{
 				case Image:
-					img->GetImage()->draw(pos.x, pos.y, size.x, size.y);
+					img->GetImage()->draw(pos.x-sizehalf.x, pos.y-sizehalf.y, size.x, size.y);
 					break;
 				case GIF:
-					img->GetGIF()->draw(pos.x, pos.y, size.x, size.y);
+					img->GetGIF()->draw(pos.x-sizehalf.x, pos.y-sizehalf.y, size.x, size.y);
 					break;
 				case Video:
-					img->GetVideo()->draw(pos.x, pos.y, size.x, size.y);
+					img->GetVideo()->draw(pos.x-sizehalf.x, pos.y-sizehalf.y, size.x, size.y);
 					break;
 			}
+			ofDrawCircle(pos.x, pos.y, 3);
 		}
 
 		// Draw the video player buttons
@@ -170,7 +213,7 @@ void ofApp::draw() {
 			float butbufsize = (VIDBUTTONSIZE+VIDBUTTONSPACE)*ratio;
 			float buffer = VIDBUTTONSPACE*ratio;
 			float bufferh = VIDBUTTONSPACE*ratio/2;
-			Vector2D pos = highlightedImage->GetPos();
+			Vector2D pos = highlightedImage->GetPos() - highlightedImage->GetSizeHalf();
 			Vector2D size = highlightedImage->GetSize();
 			ofImage* buttons[VIDBUTTONCOUNT];
 			float buty = pos.y+size.y-butbufsize;
@@ -311,10 +354,10 @@ void ofApp::mouseDragged(int x, int y, int button) {
 	{
 		if (selectedImage != NULL)
 		{
-			Vector2D size = selectedImage->GetSize();
+			Vector2D sizehalf = selectedImage->GetSizeHalf();
 			Vector2D gpos = selectedImage->GetGrabbedPosition();
-			x = MAX(0, MIN(x-gpos.x, ofGetWindowWidth() - size.x));
-			y = MAX(0, MIN(y-gpos.y, ofGetWindowHeight() - size.y));
+			x = x-gpos.x;
+			y = y-gpos.y;
 			selectedImage->SetPos(x, y);
 		}
 	}
@@ -339,7 +382,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 				float butsize = VIDBUTTONSIZE*ratio;
 				float butbufsize = (VIDBUTTONSIZE+VIDBUTTONSPACE)*ratio;
 				float buffer = VIDBUTTONSPACE*ratio;
-				Vector2D pos = highlightedImage->GetPos();
+				Vector2D pos = highlightedImage->GetPos() - highlightedImage->GetSizeHalf();
 				Vector2D size = highlightedImage->GetSize();
 				float buty = pos.y+size.y-butbufsize;
 				if (y >= buty && y <= buty+butbufsize)

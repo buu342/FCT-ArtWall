@@ -39,6 +39,7 @@ class ThumbObject
 		Vector2D  m_thumbsizereal;
 		Vector2D  m_thumbpos;
 		Vector2D  m_thumbsize;
+		Vector2D  m_thumbsizehalf;
 		Vector2D  m_thumbsizemin;
 		Vector2D  m_thumbsizemax;
 		float     m_thumbsizeratio;
@@ -58,6 +59,7 @@ class ThumbObject
 		Vector2D       GetPos();
 		Vector2D       GetRealSize();
 		Vector2D       GetSize();
+		Vector2D       GetSizeHalf();
 		Vector2D       GetMinSize();
 		Vector2D       GetMaxSize();
 		float          GetSizeRatio();
