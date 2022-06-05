@@ -41,6 +41,7 @@ class ThumbObject
 		Vector2D  m_thumbsize;
 		Vector2D  m_thumbsizemin;
 		Vector2D  m_thumbsizemax;
+		float     m_thumbsizeratio;
 		Vector2D  m_grabbedpos;
 		bool      m_videoplaying;
 		bool      m_videomuted;
@@ -59,6 +60,7 @@ class ThumbObject
 		Vector2D       GetSize();
 		Vector2D       GetMinSize();
 		Vector2D       GetMaxSize();
+		float          GetSizeRatio();
 		Vector2D       GetGrabbedPosition();
 		bool           GetVideoPlaying();
 		bool           GetVideoMuted();

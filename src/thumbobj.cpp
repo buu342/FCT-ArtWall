@@ -2,7 +2,6 @@
 
 ThumbObject::ThumbObject(string path, float x, float y)
 {
-	float ratio;
 	std::string ext = path;
 	ext = ext.substr(ext.find_last_of(".") + 1);
 	std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
@@ -48,9 +47,9 @@ ThumbObject::ThumbObject(string path, float x, float y)
 		this->m_thumbsizereal = {img->getWidth(), img->getHeight()};
 	}
 
-	ratio = this->m_thumbsizereal.x/this->m_thumbsizereal.y;
+	this->m_thumbsizeratio = this->m_thumbsizereal.x/this->m_thumbsizereal.y;
 	this->m_thumbpath = path;
-	this->m_thumbsizemin = {ratio*64.0f, 1.0f*64.0f};
+	this->m_thumbsizemin = {64.0f, 64.0f/this->m_thumbsizeratio};
 	this->m_thumbsizemax = this->m_thumbsizereal;
 	this->m_thumbsize = this->m_thumbsizemin;
 	this->m_thumbpos = {x, y};
@@ -105,11 +104,6 @@ Vector2D ThumbObject::GetSize()
 	return this->m_thumbsize;
 }
 
-Vector2D ThumbObject::GetGrabbedPosition()
-{
-	return this->m_grabbedpos;
-}
-
 Vector2D ThumbObject::GetMinSize()
 {
 	return this->m_thumbsizemin;
@@ -118,6 +112,26 @@ Vector2D ThumbObject::GetMinSize()
 Vector2D ThumbObject::GetMaxSize()
 {
 	return this->m_thumbsizemax;
+}
+
+float ThumbObject::GetSizeRatio()
+{
+	return this->m_thumbsizeratio;
+}
+
+Vector2D ThumbObject::GetGrabbedPosition()
+{
+	return this->m_grabbedpos;
+}
+
+bool ThumbObject::GetVideoPlaying()
+{
+	return this->m_videoplaying;
+}
+
+bool ThumbObject::GetVideoMuted()
+{
+	return this->m_videomuted;
 }
 
 void ThumbObject::SetPos(float x, float y)
@@ -194,7 +208,6 @@ void ThumbObject::AdvanceVideo(int frames)
 	}
 }
 
-
 bool ThumbObject::IsOverlapping(float x, float y)
 {
 	return (
@@ -216,14 +229,4 @@ bool ThumbObject::IsOverlapping(ThumbObject* other)
 		this->m_thumbpos.y < other->GetPos().y + other->GetSize().y &&
 		this->m_thumbsize.y + this->m_thumbpos.y > other->GetPos().y
 	);
-}
-
-bool ThumbObject::GetVideoPlaying()
-{
-	return this->m_videoplaying;
-}
-
-bool ThumbObject::GetVideoMuted()
-{
-	return this->m_videomuted;
 }

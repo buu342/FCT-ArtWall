@@ -9,6 +9,8 @@
 
 using cv::Mat;
 
+#define TESTING false
+
 #define M_PI 3.14159265358979323846
 #define ESCAPESPEED 100
 #define SCALESPEED 1
@@ -25,12 +27,17 @@ const int kMinMatchingSize = 3;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-	//set up the haar finder
+	// Set up the haar finder
 	ofxCvHaarFinder hF = ofxCvHaarFinder();
 	hF.setup("haarcascade_frontalface_default.xml");
-	ofSetVerticalSync(true);
 
-	// Initialize the music player button icons
+	// Initialize variables
+	imagecount = 0;
+	selectedImage = NULL;
+	highlightedImage = NULL;
+	vidplayer_alpha = 0;
+
+	// Initialize the video player button icons
 	vidplayer_playbutton.load("Play.png");
 	vidplayer_pausebutton.load("Pause.png");
 	vidplayer_forwardbutton.load("Forward.png");
@@ -38,47 +45,19 @@ void ofApp::setup() {
 	vidplayer_soundbutton.load("Sound.png");
 	vidplayer_mutebutton.load("Mute.png");
 
-	// Get the images from the given directory
-	dir.listDir("images/of_logos/");
-	dir.allowExt("jpg"); 
-	dir.sort(); // in linux the file system doesn't return file lists ordered in alphabetical order
-
-	// Allocate the vector to have as many ThumbObject as files
-	if (dir.size()) {
-		images.resize(dir.size());
-	}
-
-	// you can now iterate through the files and load them into the ofImage vector
-	for (size_t i=0; i<images.size(); i++) 
-	{
-		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
-		if (img->GetThumbType() == None)
-		{
-			delete img;
-			continue;
-		}
-		if (img->GetMaxSize().x > appsize.x/2 || img->GetMaxSize().y > appsize.y/2)
-		{
-			float ratio = img->GetMaxSize().x / img->GetMaxSize().y;
-			img->SetMaxSize({appsize.x/2, appsize.y/2*ratio});
-		}
-		if (img->GetThumbType() == Video)
-		{
-			ofVideoPlayer* vid = img->GetVideo();
-			double vidCut = vidDetectCut(vid);
-		}
-		images[imagecount++] = img;
-	}
-	selectedImage = NULL;
-	highlightedImage = NULL;
-	vidplayer_alpha = 0;
-
-	// Draw the background
+	// Initialize the rest of the app
+	ofSetVerticalSync(true);
 	ofBackground(ofColor::black);
+
+	// Load the test directory
+	if (TESTING)
+		this->loadDirectory("images/of_logos/");
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
+
+	// Iterate through all loaded thumbs
 	for (int i=0; i<imagecount; i++) {
 
 		// Initialize a bunch of helper variables
@@ -128,14 +107,14 @@ void ofApp::update() {
 					if (img->IsOverlapping(collisions[j]) && largest->GetSize() < images[j]->GetSize())
 						largest = images[j];
 					if (highlightedImage != largest && largest->GetSize() > largest->GetMinSize())
-						largest->SetSize(largest->GetSize() - SCALESPEED);
+						largest->SetSize(largest->GetSize().x - SCALESPEED, largest->GetSize().y - SCALESPEED/largest->GetSizeRatio());
 				}
 			}
 		}
 		
 		// Enlarge the image if it is not colliding with anything
 		if ((colcount == 0 || img == highlightedImage) && img->GetSize() < img->GetMaxSize())
-			img->SetSize(img->GetSize() + SCALESPEED);
+			img->SetSize(img->GetSize().x + SCALESPEED, img->GetSize().y + SCALESPEED/img->GetSizeRatio());
 
 		// Don't allow the image to go out of bounds
 		img->SetPos(MAX(0, MIN(img->GetPos().x, ofGetWindowWidth() - img->GetSize().x)), MAX(0, MIN(img->GetPos().y, ofGetWindowHeight() - img->GetSize().y)));
@@ -227,38 +206,81 @@ void ofApp::draw() {
 			ofSetColor(ofColor::white);
 		}
 		ofDisableAlphaBlending();
-
-		/*
-		ofSetColor(ofColor::gray);
-		m_col colorValue = calculateColor(currentImage);
-		string pathInfo = dir.getName(currentImage) + " " + dir.getPath(currentImage) + "\n\n" +
-		"press any key to advance current image\n\n" +
-		"many thanks to hikaru furuhashi for the OFs" +
-		"\n Image Luminance: " + std::to_string(calculateLuminance(currentImage)) +
-		"\n Image Color: " + std::to_string(colorValue.red) + "," + std::to_string(colorValue.green) + "," + std::to_string(colorValue.blue);
-
-		double gabor[8] = {};
-		calculateGabor(currentImage, gabor);
-		double edge[4] = {};
-		calculateEdges(currentImage, edge);
-
-		ofDrawBitmapString(pathInfo, 300, 256 + 80);
-		*/
 	}
 
-	/*
-	ofSetColor(ofColor::gray);
-	for (int i = 0; i < (int)dir.size(); i++) {
-	if (i == currentImage) {
-	ofSetColor(ofColor::red);
+	// Show how to open a directory if none is open
+	if (imagecount == 0)
+	{
+		ofTrueTypeFont font;
+		string str = "Press CTRL + O to open a directory with images/video";
+
+		ofSetColor(ofColor::white);
+		font.load(OF_TTF_SANS, 24);
+		font.drawString(str, ofGetWindowWidth()/2 - font.stringWidth(str)/2, ofGetWindowHeight()/2);
 	}
-	else {
-	ofSetColor(ofColor::blueSteel);
+}
+
+//--------------------------------------------------------------
+void ofApp::loadDirectory(string directory)
+{
+	printf("Reading directory '");
+	cout << directory;
+	printf("'\n");
+
+	// Clean up memory used by any old images
+	if (imagecount != 0)
+	{
+		for (size_t i=0; i<imagecount; i++)
+		{
+			if (images[i]->GetThumbType() == Image)
+				delete images[i]->GetImage();
+			else if (images[i]->GetThumbType() == Video)
+				delete images[i]->GetVideo();
+			else
+				delete images[i]->GetGIF();
+			delete images[i];
+			images[i] = NULL;
+		}
+		dir.close();
 	}
-	string fileInfo = "file " + ofToString(i + 1) + " = " + dir.getName(i);
-	ofDrawBitmapString(fileInfo, 50, i * 20 + 50);
+
+	// Reset variables
+	imagecount = 0;
+	selectedImage = NULL;
+	highlightedImage = NULL;
+	vidplayer_alpha = 0;
+
+	// Get the images from the given directory
+	dir.listDir(directory);
+	dir.sort(); // In Linux, the file system doesn't return file lists ordered in alphabetical order
+
+	if (dir.size() == 0)
+		return;
+
+	// Allocate the vector to have as many ThumbObject as files
+	images.resize(dir.size());
+
+	// you can now iterate through the files and load them into the ofImage vector
+	for (size_t i=0; i<images.size(); i++) 
+	{
+		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
+		if (img->GetThumbType() == None)
+		{
+			delete img;
+			continue;
+		}
+		if (appsize.x > appsize.y)
+			img->SetMaxSize({appsize.y/2, (appsize.y/2)/img->GetSizeRatio()});
+		else
+			img->SetMaxSize({appsize.x/2, (appsize.x/2)/img->GetSizeRatio()});
+		if (img->GetThumbType() == Video)
+		{
+			ofVideoPlayer* vid = img->GetVideo();
+			//double vidCut = vidDetectCut(vid);
+		}
+		images[imagecount++] = img;
 	}
-	*/
+	printf("Loaded %d images.\n\n", imagecount);
 }
 
 float luminanceFunction(ofColor color) {
@@ -665,28 +687,21 @@ int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
 }
 
 //--------------------------------------------------------------
-void ofApp::keyPressed(int key) {
-
-	/*
-	if (dir.size() > 0) {
-
-	switch (key) {
-	case (57356):
-	case (57357):
-	currentImage--;
-	currentImage %= dir.size();
-	break;
-	case (57358):
-	case (57359):
-	currentImage++;
-	currentImage %= dir.size();
-	break;
-
-
+void ofApp::keyPressed(int key)
+{
+	if (ofGetKeyPressed(OF_KEY_CONTROL))
+	{
+		switch (key)
+		{
+			case 'O':
+			case 'o':
+			case 0x0F:
+				ofFileDialogResult result = ofSystemLoadDialog("Load folder", true);
+				if (result.bSuccess)
+					this->loadDirectory(result.getPath()+"/");
+				break;
+		}
 	}
-
-	}
-	*/
 }
 
 //--------------------------------------------------------------
@@ -763,6 +778,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 				}
 			}
 
+			// No need to look into the other images
 			return;
 		}
 
@@ -775,6 +791,8 @@ void ofApp::mousePressed(int x, int y, int button) {
 			{
 				selectedImage = img;
 				selectedImage->SetGrabbedPosition(x-pos.x, y-pos.y);
+				if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
+					highlightedImage->SetVideoPlaying(false);
 				highlightedImage = img;
 				images[i] = images[0];
 				images[0] = img;
@@ -786,7 +804,11 @@ void ofApp::mousePressed(int x, int y, int button) {
 
 		// If nothing was selected, remove the highlighted image
 		if (!selected)
+		{
+			if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
+				highlightedImage->SetVideoPlaying(false);
 			highlightedImage = NULL;
+		}
 	}
 }
 
@@ -811,8 +833,10 @@ void ofApp::windowResized(int w, int h) {
 	appsize = {(float)w, (float)h};
 	for (int i=0; i<imagecount; i++)
 	{
-		float ratio = images[i]->GetMaxSize().x / images[i]->GetMaxSize().y;
-		images[i]->SetMaxSize({appsize.x/2, appsize.y/2*ratio});
+		if (appsize.x > appsize.y)
+			images[i]->SetMaxSize({appsize.y/2, (appsize.y/2)/images[i]->GetSizeRatio()});
+		else
+			images[i]->SetMaxSize({appsize.x/2, (appsize.x/2)/images[i]->GetSizeRatio()});
 	}
 }
 
