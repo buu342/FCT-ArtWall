@@ -8,6 +8,14 @@ Vector2D appsize = {1024, 768};
 ThumbObject* selectedImage;
 ThumbObject* highlightedImage;
 
+ofxPanel gui_metadatamenu;
+ofxInputField<string> gui_metadatamenu_tags;
+ofxLabel gui_metadatamenu_luminance;
+ofxLabel gui_metadatamenu_color;
+ofxLabel gui_metadatamenu_faces;
+ofxLabel gui_metadatamenu_edge;
+ofxLabel gui_metadatamenu_cuts;
+
 //========================================================================
 int main() {
 

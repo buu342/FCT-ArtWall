@@ -16,6 +16,14 @@ extern Vector2D appsize;
 extern ThumbObject* selectedImage;
 extern ThumbObject* highlightedImage;
 
+extern ofxPanel gui_metadatamenu;
+extern ofxInputField<string> gui_metadatamenu_tags;
+extern ofxLabel gui_metadatamenu_luminance;
+extern ofxLabel gui_metadatamenu_color;
+extern ofxLabel gui_metadatamenu_faces;
+extern ofxLabel gui_metadatamenu_edge;
+extern ofxLabel gui_metadatamenu_cuts;
+
 class ofApp : public ofBaseApp {
 
 	public:
@@ -48,7 +56,8 @@ class ofApp : public ofBaseApp {
 		void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc);
 		void ofApp::vidThumb(ofVideoPlayer* vid, double* array);
 		std::vector<double>* ofApp::vidDetectCut(ofVideoPlayer* vid, double thresh);
-		double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of);
+		double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of, int w, int h);
+		void OnTagsChanged(string & text);
 
 	private:
 
@@ -72,5 +81,5 @@ class ofApp : public ofBaseApp {
 		bool contextopen;
 		Vector2D contextpos;
 		ThumbObject* contextobject;
-		ofxPanel gui_metadatamenu;
+		bool metadataopen;
 };

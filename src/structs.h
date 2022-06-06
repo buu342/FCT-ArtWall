@@ -34,12 +34,12 @@
     };
 
     struct Meta {
+        string path;
         std::vector<string> tags;
-        int      tagcount;
-        float    averageluminance;
+        double   averageluminance;
         m_col    averagecolor;
         int      facecount;
-        double   edges[4];
+        int      edgeangle;
         std::vector<double> cuts;
     };
 

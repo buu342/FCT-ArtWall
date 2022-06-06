@@ -86,9 +86,27 @@ void ThumbObject::update()
 	}
 }
 
-void ThumbObject::LoadMetadata(ofxXmlSettings* metadata)
+void ThumbObject::LoadMetadata(ofxXmlSettings* metadata, string path)
 {
-	
+	this->m_metadata.path = path;
+	metadata->pushTag("metadata");
+	metadata->pushTag("tags");
+		for (int i=0; i<metadata->getNumTags("tag"); i++)
+			this->m_metadata.tags.push_back(metadata->getValue("tag", "", i));
+	metadata->popTag();
+	this->m_metadata.averageluminance = metadata->getValue("luminance", 0.0);
+	metadata->pushTag("color");
+		this->m_metadata.averagecolor.red = metadata->getValue("red", 0.0);
+		this->m_metadata.averagecolor.green = metadata->getValue("green", 0.0);
+		this->m_metadata.averagecolor.blue = metadata->getValue("blue", 0.0);
+	metadata->popTag();
+	this->m_metadata.facecount = metadata->getValue("faces", 0);
+	this->m_metadata.edgeangle = metadata->getValue("edgeangle", 0);
+	metadata->pushTag("cuts");
+		for (int i=0; i<metadata->getNumTags("value"); i++)
+			this->m_metadata.cuts.push_back(metadata->getValue("value", 0.0, i));
+	metadata->popTag();
+	metadata->popTag();
 }
 
 ofImage* ThumbObject::GetImage()
@@ -154,6 +172,11 @@ bool ThumbObject::GetVideoPlaying()
 bool ThumbObject::GetVideoMuted()
 {
 	return this->m_videomuted;
+}
+
+Meta* ThumbObject::GetMetadata()
+{
+	return &this->m_metadata;
 }
 
 void ThumbObject::SetPos(float x, float y)

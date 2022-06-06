@@ -29,7 +29,7 @@ class ThumbObject
 		ThumbObject(string path, float x, float y);
 		~ThumbObject();
 		void update();
-		void LoadMetadata(ofxXmlSettings* metadata);
+		void LoadMetadata(ofxXmlSettings* metadata, string path);
 
 		ofImage*       GetImage();
 		ofImage*       GetGIF();
@@ -44,6 +44,7 @@ class ThumbObject
 		Vector2D       GetGrabbedPosition();
 		bool           GetVideoPlaying();
 		bool           GetVideoMuted();
+		Meta*          GetMetadata();
 
 		void SetPos(float x, float y);
 		void SetPos(Vector2D pos);

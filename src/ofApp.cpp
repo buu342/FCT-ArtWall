@@ -19,16 +19,16 @@
 #define VIDBUTTONCOUNT  4
 #define VIDBUTTONRATIO  (VIDBUTTONSIZE*VIDBUTTONCOUNT + VIDBUTTONSPACE*(VIDBUTTONCOUNT+1))
 
+#define CONTEXTBUTTONS   {/*"Open", "Open Folder", */"Metadata"}
 #define CONTEXTFONT      12
 #define CONTEXTWIDTH     128
-#define CONTEXTBUTCOUNT  4
+#define CONTEXTBUTCOUNT  1
 #define CONTEXTBUTHEIGHT 24
 
 
 //--------------------------------------------------------------
 void ofApp::setup() {
 	// Set up the haar finder
-	hF = ofxCvHaarFinder();
 	hF.setup("haarcascade_frontalface_default.xml");
 
 	// Initialize variables
@@ -50,6 +50,17 @@ void ofApp::setup() {
 	// Initialize the rest of the app
 	ofSetVerticalSync(true);
 	ofBackground(ofColor::black);
+
+	// Initialize the metadata menu
+	gui_metadatamenu.setup();
+	gui_metadatamenu.setSize(256, 256);
+	gui_metadatamenu.add(gui_metadatamenu_tags.setup("Tags: ", ""));
+	gui_metadatamenu.add(gui_metadatamenu_luminance.setup("Average Luminance: ", ""));
+	gui_metadatamenu.add(gui_metadatamenu_color.setup("Average Color: ", ""));
+	gui_metadatamenu.add(gui_metadatamenu_faces.setup("Face count: ", ""));
+	gui_metadatamenu.add(gui_metadatamenu_edge.setup("Edge Distribution: ", ""));
+	gui_metadatamenu.add(gui_metadatamenu_cuts.setup("Scene cuts: ", ""));
+	gui_metadatamenu_tags.addListener(this, &ofApp::OnTagsChanged);
 
 	// Load the test directory
 	if (TESTING)
@@ -226,6 +237,34 @@ void ofApp::draw() {
 	{
 		// Filter buttons
 	}
+
+	// Context menu
+	if (contextopen)
+	{
+		ofTrueTypeFont font;
+		const string buttons[] = CONTEXTBUTTONS;
+		ofSetColor(ofColor::gray);
+		ofDrawRectangle(contextpos.x, contextpos.y, CONTEXTWIDTH, CONTEXTBUTHEIGHT*CONTEXTBUTCOUNT);
+		ofSetColor(192, 192, 192, 255);
+		ofDrawRectangle(contextpos.x+1, contextpos.y+1, CONTEXTWIDTH-2, CONTEXTBUTHEIGHT*CONTEXTBUTCOUNT-2);
+		font.load(OF_TTF_SANS, CONTEXTFONT);
+		for (int i=0; i<CONTEXTBUTCOUNT; i++)
+		{
+			ofSetColor(ofColor::gray);
+			ofDrawRectangle(contextpos.x, contextpos.y+CONTEXTBUTHEIGHT*i, CONTEXTWIDTH, CONTEXTBUTHEIGHT);
+			if (ofGetMouseX() >= contextpos.x && ofGetMouseY() >= contextpos.y+CONTEXTBUTHEIGHT*i && ofGetMouseX() <= contextpos.x+CONTEXTWIDTH && ofGetMouseY() <= contextpos.y+CONTEXTBUTHEIGHT*i+CONTEXTBUTHEIGHT)
+				ofSetColor(ofColor::white);
+			else
+				ofSetColor(192, 192, 192, 255);
+			ofDrawRectangle(contextpos.x+1, contextpos.y+1+CONTEXTBUTHEIGHT*i, CONTEXTWIDTH-2, CONTEXTBUTHEIGHT-2);
+			ofSetColor(ofColor::black);
+			font.drawString(buttons[i], contextpos.x+8, contextpos.y+18+CONTEXTBUTHEIGHT*i);
+		}
+	}
+
+	// Metadata menu
+	if (metadataopen)
+		gui_metadatamenu.draw();
 }
 
 //--------------------------------------------------------------
@@ -277,6 +316,7 @@ void ofApp::loadDirectory(string directory)
 	// you can now iterate through the files and load them into the ofImage vector
 	for (size_t i=0; i<images.size(); i++) 
 	{
+		string metapath = directory+".artwall/"+dir.getName(i)+"_metadata.xml";
 		ofxXmlSettings metadata;
 		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
 		if (img->GetThumbType() == None)
@@ -292,16 +332,14 @@ void ofApp::loadDirectory(string directory)
 			img->SetMaxSize({appsize.x/2, (appsize.x/2)/img->GetSizeRatio()});
 
 		// Load the thumb's metadata
-		metadata.loadFile(directory+".artwall/"+dir.getName(i)+"_metadata.xml");
+		metadata.loadFile(metapath);
 		this->GenerateMetadata(&metadata, img);
-		metadata.saveFile(directory+".artwall/"+dir.getName(i)+"_metadata.xml");
-		img->LoadMetadata(&metadata);
-
-		if (img->GetThumbType() == Video)
+		if (generatingmeta)
 		{
-			ofVideoPlayer* vid = img->GetVideo();
-			//double vidCut = vidDetectCut(vid);
+			metadata.saveFile(metapath);
+			generatingmeta = false;
 		}
+		img->LoadMetadata(&metadata, metapath);
 		images[imagecount++] = img;
 	}
 	printf("Loaded %d images.\n\n", imagecount);
@@ -322,7 +360,6 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	{
 		generatingmeta = true;
 		metadata->addTag("tags");
-		//metadata.addValue("tag", "value");
 		metadata->pushTag("tags");
 		metadata->popTag();
 	}
@@ -400,38 +437,36 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	}
 
 	// Add the intensity of each edge image tag
-	if (!metadata->tagExists("edges"))
+	if (!metadata->tagExists("edgeangle"))
 	{
 		ofImage* frame;
 		double edge[4] = {};
+		double finalang = 0;
 		generatingmeta = true;
 		printf("Detecting edges\n");
 		switch (img->GetThumbType())
 		{
-		case Video:
-			frame = new ofImage();
-			frame->setFromPixels(((ofVideoPlayer*)img->GetVideo())->getPixels());
-			calculateEdges(*frame, edge);
-			delete frame;
-			break;
-		case GIF:
-			calculateEdges(*img->GetGIF(), edge);
-			break;
-		case Image:
-			calculateEdges(*img->GetImage(), edge);
-			break;
+			case Video:
+				frame = new ofImage();
+				frame->setFromPixels(((ofVideoPlayer*)img->GetVideo())->getPixels());
+				calculateEdges(*frame, edge);
+				delete frame;
+				break;
+			case GIF:
+				calculateEdges(*img->GetGIF(), edge);
+				break;
+			case Image:
+				calculateEdges(*img->GetImage(), edge);
+				break;
 		}
-		metadata->addTag("edges");
-		metadata->pushTag("edges");
-		for (int i = 0; i < 4; i++)
-			metadata->addValue("value", edge[i]);
-		metadata->popTag();
+		finalang = edge[0]*90 + edge[1]*0 + edge[2]*45 + edge[3]*135 /MAX(1, edge[0]+edge[1]+edge[2]+edge[3]);
+		metadata->addValue("edgeangle", ((int)finalang)%360);
 	}
 
 	// Add the thumbnail positions tag
 	if (!metadata->tagExists("cuts"))
 	{
-		double threshold = 0.5;
+		const double threshold = 100;
 		std::vector<double>* cuts;
 
 		printf("Detecting video cuts\n");
@@ -440,33 +475,32 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 		metadata->pushTag("cuts");
 		switch (img->GetThumbType())
 		{
-		case Video:
-			cuts = vidDetectCut((ofVideoPlayer*)img->GetVideo(), threshold);
-			for (int i = 0; i < cuts->size(); i++)
-				metadata->addValue("value", cuts->at(i));
-			delete cuts;
-
-			break;
-		case GIF:
-			metadata->addValue("value", 0);
-			break;
-		case Image:
-			metadata->addValue("value", 0);
-			break;
+			case Video:
+				cuts = vidDetectCut((ofVideoPlayer*)img->GetVideo(), threshold);
+				for (int i = 0; i < cuts->size(); i++)
+					metadata->addValue("value", (double)cuts->at(i));
+				delete cuts;
+				break;
+			case GIF:
+				break;
+			case Image:
+				break;
 		}
 		metadata->popTag();
-		if (img->GetThumbType() == Video) {
-			((ofVideoPlayer*)img->GetVideo())->setPosition(0);
-			((ofVideoPlayer*)img->GetVideo())->setPaused(true);
-		}
 	}
-
-	generatingmeta = false;
+	if (img->GetThumbType() == Video)
+	{
+		((ofVideoPlayer*)img->GetVideo())->setPosition(0);
+		((ofVideoPlayer*)img->GetVideo())->setPaused(true);
+	}
+	metadata->popTag();
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key)
 {
+	if (metadataopen)
+		return;
 	if (ofGetKeyPressed(OF_KEY_CONTROL))
 	{
 		switch (key)
@@ -509,17 +543,57 @@ void ofApp::mouseDragged(int x, int y, int button) {
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button) {
+	if (metadataopen && gui_metadatamenu.getShape().inside(x,y))
+		return;
+	else if (metadataopen)
+	{
+		metadataopen = false;
+		return
+	}
+
 	if (button == OF_MOUSE_BUTTON_LEFT)
 	{
 		bool selected = false;
 
 		// Handle context menu first
-		if (contextopen && x >= contextpos.x && y >= contextpos.y && x <= contextpos.x + CONTEXTWIDTH && y <= contextpos.y + CONTEXTBUTCOUNT*CONTEXTBUTHEIGHT)
+		if (contextopen)
 		{
-
+			if (x >= contextpos.x && y >= contextpos.y && x <= contextpos.x + CONTEXTWIDTH && y <= contextpos.y + CONTEXTBUTCOUNT*CONTEXTBUTHEIGHT)
+			{
+				for (int i=0; i<CONTEXTBUTCOUNT; i++)
+				{
+					if (ofGetMouseX() >= contextpos.x && ofGetMouseY() >= contextpos.y+CONTEXTBUTHEIGHT*i && ofGetMouseX() <= contextpos.x+CONTEXTWIDTH && ofGetMouseY() <= contextpos.y+CONTEXTBUTHEIGHT*i+CONTEXTBUTHEIGHT)
+					{
+						Meta* data = contextobject->GetMetadata();
+						string tagsstring = "";
+						switch (i)
+						{
+							case 0:
+								for (int j=0; j<data->tags.size(); j++)
+								{
+									if (tagsstring == "")
+										tagsstring = data->tags[j];
+									else
+										tagsstring += " " + data->tags[j];
+								}
+								gui_metadatamenu_tags = tagsstring;
+								gui_metadatamenu_luminance = to_string(data->averageluminance);
+								gui_metadatamenu_color = "["+to_string((int)data->averagecolor.red)+","+to_string((int)data->averagecolor.green)+","+to_string((int)data->averagecolor.blue)+"]";
+								gui_metadatamenu_faces = to_string(data->facecount);
+								gui_metadatamenu_edge = to_string(data->averageluminance);
+								gui_metadatamenu_cuts = to_string(data->cuts.size());
+								//2*90 + 3*0 + 2*45 + 2*135 /(2+3+2+2)
+								metadataopen = true;
+								break;
+						}
+						contextopen = false;
+					}
+				}
+			}
+			else
+				contextopen = false;
+			return;
 		}
-		else
-			contextopen = false;
 
 		// Handle the highlighted picture next
 		if (highlightedImage != NULL && highlightedImage->IsOverlapping(x, y))
@@ -601,6 +675,8 @@ void ofApp::mousePressed(int x, int y, int button) {
 
 	if (button == OF_MOUSE_BUTTON_RIGHT)
 	{
+		bool selected = false;
+
 		// Check which image we pressed
 		for (int i=0; i<imagecount; i++)
 		{
@@ -610,9 +686,14 @@ void ofApp::mousePressed(int x, int y, int button) {
 				contextpos = {(float)x, (float)y};
 				contextopen = true;
 				contextobject = img;
+				selected = true;
 				break;
 			}
 		}
+
+		// If nothing was pressed, close any open context menu
+		if (!selected)
+			contextopen = false;
 	}
 }
 
@@ -652,4 +733,39 @@ void ofApp::gotMessage(ofMessage msg) {
 //--------------------------------------------------------------
 void ofApp::dragEvent(ofDragInfo dragInfo) {
 
+}
+
+//--------------------------------------------------------------
+void ofApp::OnTagsChanged(string & text)
+{
+	ofxXmlSettings metadata;
+	std::vector<string> tags; 
+	ThumbObject* obj = contextobject;
+	string temp = "";
+
+	// Split the string by spaces
+	for(int i=0; i<text.length(); ++i)
+	{
+		if(text[i] == ' ')
+		{
+			tags.push_back(temp);
+			temp = "";
+		}
+		else
+			temp.push_back(text[i]);
+	}
+	tags.push_back(temp);
+
+	// Save the metadata
+	contextobject->GetMetadata()->tags = tags;
+	metadata.loadFile(contextobject->GetMetadata()->path);
+	metadata.pushTag("metadata");
+	metadata.clearTagContents("tags");
+	metadata.pushTag("tags");
+	for(int i=0; i<tags.size(); i++)
+		metadata.addValue("tag", tags[i]);
+	metadata.popTag();
+	metadata.popTag();
+	metadata.saveFile(contextobject->GetMetadata()->path);
+	cout << "Tags changed successfully on '"+contextobject->GetMetadata()->path+"'\n";
 }

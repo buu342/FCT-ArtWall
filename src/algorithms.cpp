@@ -65,12 +65,14 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 
 	//the input image matrix
 	ofxCvGrayscaleImage img;
+	img.allocate(currentImage.getWidth(), currentImage.getHeight());
 	img.setFromPixels(imagePixels);
 	cv::Mat m = ofxCv::toCv(img.getPixels());
 	cv::InputArray inputArr (m);
 	
 	//the output images maxtices
 	ofxCvGrayscaleImage img2;
+	img2.allocate(outputImage.getWidth(), outputImage.getHeight());
 	img2.setFromPixels(outputImage.getPixels());
 
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
@@ -139,6 +141,7 @@ double* ofApp::calculateEdges(ofImage currentImage, double* avgArray) {
 
 	//the input image matrix
 	ofxCvGrayscaleImage img;
+	img.allocate(currentImage.getWidth(), currentImage.getHeight());
 	img.setFromPixels(imagePixels);
 	cv::Mat m = ofxCv::toCv(img.getPixels());
 	cv::InputArray inputArr (m);
@@ -165,6 +168,7 @@ double* ofApp::calculateEdges(ofImage currentImage, double* avgArray) {
 
 	//the output images matrices
 	ofxCvGrayscaleImage img2;
+	img2.allocate(outputImage.getWidth(), outputImage.getHeight());
 	img2.setFromPixels(outputImage.getPixels());
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 	cv::OutputArray outputArr (m2);
@@ -244,7 +248,6 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 
 	std::vector<double>* ofApp::vidDetectCut(ofVideoPlayer * vid, double thresh) {
 
-		//double cutTotal = 0;
 		int fCounter = 0;
 	
 		std::vector<double>* cuts = new std::vector<double>();
@@ -267,27 +270,25 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 				nextFrame = vid->getPixels();
 			}
 
-			double val = detectCut(currFrame, nextFrame);
-			printf("%lf\n", val);
+			double val = detectCut(currFrame, nextFrame, vid->getWidth(), vid->getHeight());
+			//printf("%lf\n", val);
 			if (val > thresh) {
-				cuts->push_back(fCounter / vid->getTotalNumFrames());
+				cuts->push_back(((double)fCounter) / ((double)vid->getTotalNumFrames()));
 			}
-			//cutTotal += val;
-
 		}
 
 		return cuts;
 	}
 
 	//dividir pelo n�mero de frames e pelo tamanho de cada frame
-	double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of) {
-
+	double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of, int w, int h) {
 
 		//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
 		image1Of.setImageType(OF_IMAGE_GRAYSCALE);
 
 		//the input image matrix
 		ofxCvGrayscaleImage img1;
+		img1.allocate(w, h);
 		img1.setFromPixels(image1Of);
 		cv::Mat m1 = ofxCv::toCv(img1.getPixels());
 
@@ -297,6 +298,7 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 
 		//the input image matrix
 		ofxCvGrayscaleImage img2;
+		img2.allocate(w, h);
 		img2.setFromPixels(image2Of);
 		cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 
@@ -339,6 +341,7 @@ bool ofApp::detectMatchingFeatures(int image1, int image2) {
 	ofPixels image1Pixels = image1Of->getPixels();
 	//the input image matrix
 	ofxCvGrayscaleImage img1;
+	img1.allocate(image1Of->getWidth(), image1Of->getHeight());
 	img1.setFromPixels(image1Pixels);
 	cv::Mat m1 = ofxCv::toCv(img1.getPixels());
 
@@ -350,6 +353,7 @@ bool ofApp::detectMatchingFeatures(int image1, int image2) {
 	ofPixels image2Pixels = image2Of->getPixels();
 	//the input image matrix
 	ofxCvGrayscaleImage img2;
+	img2.allocate(image2Of->getWidth(), image2Of->getHeight());
 	img2.setFromPixels(image2Pixels);
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 
