@@ -411,8 +411,8 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	// Add the thumbnail positions tag
 	if (!metadata->tagExists("cuts"))
 	{
-		ofImage* frame;
-		double cuts[10] = {};
+		double threshold = 0.5;
+
 		printf("Detecting Thumbnail Jumps\n");
 
 		metadata->addTag("cuts");
@@ -420,13 +420,11 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 		switch (img->GetThumbType())
 		{
 		case Video:
-
-			vidThumb((ofVideoPlayer*)img->GetVideo(), cuts);
-			delete frame;
-
-			for (int i = 0; i < 10; i++) {
-				metadata->addValue("value", cuts[i]);
+			std::vector<double>* cuts = vidDetectCut((ofVideoPlayer*)img->GetVideo(),threshold);
+			for (int i = 0; i < cuts->size(); i++) {
+				metadata->addValue("value", cuts->at(i));
 			}
+			delete cuts;
 			break;
 		case GIF:
 			metadata->addValue("value", 0);

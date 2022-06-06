@@ -242,9 +242,11 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 	}
 }
 
-double ofApp::vidDetectCut(ofVideoPlayer * vid) {
-	double cutTotal = 0;
+std::vector<double>* ofApp::vidDetectCut(ofVideoPlayer * vid, double thresh) {
+	//double cutTotal = 0;
 	int fCounter = 0;
+	
+	std::vector<double>* cuts = new std::vector<double>();
 
 	vid->firstFrame();
 
@@ -265,10 +267,13 @@ double ofApp::vidDetectCut(ofVideoPlayer * vid) {
 		}
 
 		double val = detectCut(currFrame, nextFrame);
-		cutTotal += val;
+		if (val > thresh) {
+			cuts->push_back(val);
+		}
+		//cutTotal += val;
 
 	}
-	return (cutTotal) / (fCounter * vid->getHeight() * vid->getWidth());
+	return cuts;
 }
 
 //dividir pelo n�mero de frames e pelo tamanho de cada frame

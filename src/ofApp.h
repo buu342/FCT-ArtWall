@@ -49,7 +49,7 @@ public:
 	void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches);
 	void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc);
 	void ofApp::vidThumb(ofVideoPlayer* vid, double* array);
-	double ofApp::vidDetectCut(ofVideoPlayer* vid);
+	std::vector<double>* ofApp::vidDetectCut(ofVideoPlayer* vid, double thresh);
 	double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of);
 
 	// we will have a dynamic number of images, based on the content of a directory:
