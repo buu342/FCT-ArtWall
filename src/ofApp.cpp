@@ -445,6 +445,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 			for (int i = 0; i < cuts->size(); i++)
 				metadata->addValue("value", cuts->at(i));
 			delete cuts;
+
 			break;
 		case GIF:
 			metadata->addValue("value", 0);
@@ -454,6 +455,10 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 			break;
 		}
 		metadata->popTag();
+		if (img->GetThumbType() == Video) {
+			((ofVideoPlayer*)img->GetVideo())->setPosition(0);
+			((ofVideoPlayer*)img->GetVideo())->setPaused(true);
+		}
 	}
 
 	generatingmeta = false;

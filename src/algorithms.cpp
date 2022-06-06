@@ -242,90 +242,92 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 	}
 }
 
-std::vector<double>* ofApp::vidDetectCut(ofVideoPlayer * vid, double thresh) {
-	//double cutTotal = 0;
-	int fCounter = 0;
+	std::vector<double>* ofApp::vidDetectCut(ofVideoPlayer * vid, double thresh) {
+
+		//double cutTotal = 0;
+		int fCounter = 0;
 	
-	std::vector<double>* cuts = new std::vector<double>();
+		std::vector<double>* cuts = new std::vector<double>();
 
-	vid->firstFrame();
+		vid->firstFrame();
 
-	while (fCounter < vid->getTotalNumFrames()) {
-		ofPixels currFrame = vid->getPixels();
+		while (fCounter < vid->getTotalNumFrames()) {
+			ofPixels currFrame = vid->getPixels();
 
-		fCounter+=5;
-		vid->nextFrame();
-		vid->nextFrame();
-		vid->nextFrame();
-		vid->nextFrame();
-		vid->nextFrame();
+			fCounter+=5;
+			vid->nextFrame();
+			vid->nextFrame();
+			vid->nextFrame();
+			vid->nextFrame();
+			vid->nextFrame();
 
-		ofPixels nextFrame = currFrame;
-		if (fCounter < vid->getTotalNumFrames()) {
+			ofPixels nextFrame = currFrame;
+			if (fCounter < vid->getTotalNumFrames()) {
 
-			nextFrame = vid->getPixels();
+				nextFrame = vid->getPixels();
+			}
+
+			double val = detectCut(currFrame, nextFrame);
+			printf("%lf\n", val);
+			if (val > thresh) {
+				cuts->push_back(fCounter / vid->getTotalNumFrames());
+			}
+			//cutTotal += val;
+
 		}
 
-		double val = detectCut(currFrame, nextFrame);
-		printf("%lf\n", val);
-		if (val > thresh) {
-			cuts->push_back(fCounter);
-		}
-		//cutTotal += val;
-
+		return cuts;
 	}
-	return cuts;
-}
 
-//dividir pelo n�mero de frames e pelo tamanho de cada frame
-double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of) {
+	//dividir pelo n�mero de frames e pelo tamanho de cada frame
+	double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of) {
 
 
-	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
-	image1Of.setImageType(OF_IMAGE_GRAYSCALE);
+		//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
+		image1Of.setImageType(OF_IMAGE_GRAYSCALE);
 
-	//the input image matrix
-	ofxCvGrayscaleImage img1;
-	img1.setFromPixels(image1Of);
-	cv::Mat m1 = ofxCv::toCv(img1.getPixels());
-
-
-	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
-	image2Of.setImageType(OF_IMAGE_GRAYSCALE);
-
-	//the input image matrix
-	ofxCvGrayscaleImage img2;
-	img2.setFromPixels(image2Of);
-	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
+		//the input image matrix
+		ofxCvGrayscaleImage img1;
+		img1.setFromPixels(image1Of);
+		cv::Mat m1 = ofxCv::toCv(img1.getPixels());
 
 
-	cv::MatND hist1;
-	cv::MatND hist2;
+		//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
+		image2Of.setImageType(OF_IMAGE_GRAYSCALE);
 
-	int channels[] = { 0 };
-	int lbins = 256;
-	int histSize[] = { lbins };
-	float lranges[] = { 0, 256 };
-	const float* ranges[] = { lranges };
-	cv::calcHist(&m1, 1, channels, cv::Mat(), // do not use mask
-		hist1, 1, histSize, ranges,
-		true, // the histogram is uniform
-		false);
-	double maxVal1 = 0;
-	cv::minMaxLoc(hist1, 0, &maxVal1, 0, 0);
+		//the input image matrix
+		ofxCvGrayscaleImage img2;
+		img2.setFromPixels(image2Of);
+		cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 
-	cv::calcHist(&m2, 1, channels, cv::Mat(), // do not use mask
-		hist2, 1, histSize, ranges,
-		true, // the histogram is uniform
-		false);
-	double maxVal2 = 0;
-	cv::minMaxLoc(hist2, 0, &maxVal2, 0, 0);
 
-	//calcular as difs entre os dois histogramas com cv::compareHist(), em que o method � a constante "HISTCMP_CHISQR "
-	double comparison = cv::compareHist(hist1, hist2, cv::HISTCMP_CHISQR);
-	// Needs to return something to compile
-	return comparison;
-}
+		cv::MatND hist1;
+		cv::MatND hist2;
+
+		int channels[] = { 0 };
+		int lbins = 256;
+		int histSize[] = { lbins };
+		float lranges[] = { 0, 256 };
+		const float* ranges[] = { lranges };
+		cv::calcHist(&m1, 1, channels, cv::Mat(), // do not use mask
+			hist1, 1, histSize, ranges,
+			true, // the histogram is uniform
+			false);
+		double maxVal1 = 0;
+		cv::minMaxLoc(hist1, 0, &maxVal1, 0, 0);
+
+		cv::calcHist(&m2, 1, channels, cv::Mat(), // do not use mask
+			hist2, 1, histSize, ranges,
+			true, // the histogram is uniform
+			false);
+		double maxVal2 = 0;
+		cv::minMaxLoc(hist2, 0, &maxVal2, 0, 0);
+
+		//calcular as difs entre os dois histogramas com cv::compareHist(), em que o method � a constante "HISTCMP_CHISQR "
+		double comparison = cv::compareHist(hist1, hist2, cv::HISTCMP_CHISQR);
+		// Needs to return something to compile
+		return comparison;
+	}
 
 //using orb to check out if two images have similar descriptors
 bool ofApp::detectMatchingFeatures(int image1, int image2) {

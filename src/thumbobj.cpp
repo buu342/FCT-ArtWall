@@ -21,7 +21,7 @@ ThumbObject::ThumbObject(string path, float x, float y)
 		img->setLoopState(OF_LOOP_NORMAL);
 		img->setVolume(0);
 		img->play();
-		img->setPaused(true);
+
 		this->m_thumb = img;
 		this->m_thumbtype = Video;
 		this->m_thumbsizereal = {img->getWidth(), img->getHeight()};
