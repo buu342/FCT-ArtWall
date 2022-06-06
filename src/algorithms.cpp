@@ -17,14 +17,12 @@ inline float luminanceFunction(ofColor color) {
 	return (0.2126 * (float)color.r + 0.7152 * (float)color.g + 0.0722 * (float)color.b);
 }
 
-float ofApp::calculateLuminance(int image) {
-	ofImage* currentImage = images[image]->GetImage();
-	ofPixels imagePixels = currentImage->getPixels();
+float ofApp::calculateLuminance(ofPixels* imagePixels) {
 	float sumLuminance = 0;
-	size_t vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
+	size_t vectorSize = imagePixels->getWidth() * imagePixels->getHeight();
 	if (vectorSize > 0) {
 		for (int i = 0; i < vectorSize; i++) {
-			ofColor colorAtIndex = imagePixels.getColor(i);
+			ofColor colorAtIndex = imagePixels->getColor(i);
 			sumLuminance += luminanceFunction(colorAtIndex);
 		}
 		sumLuminance = sumLuminance / vectorSize;
@@ -32,17 +30,13 @@ float ofApp::calculateLuminance(int image) {
 	return sumLuminance;
 }
 
-m_col ofApp::calculateColor(int image) {
-
-
-	ofImage* currentImage = images[image]->GetImage();
-	ofPixels imagePixels = currentImage->getPixels();
+m_col ofApp::calculateColor(ofPixels* imagePixels) {
 	m_col sumColor = { 0, 0, 0 };
-	float vectorSize = imagePixels.getWidth() * imagePixels.getHeight();
+	float vectorSize = imagePixels->getWidth() * imagePixels->getHeight();
 	if (vectorSize > 0) {
-		for (uint32_t y = 0; y < imagePixels.getHeight(); y++) {
-			for (uint32_t x = 0; x < imagePixels.getWidth(); x++) {
-				ofColor colorAtIndex = imagePixels.getColor(x, y);
+		for (uint32_t y = 0; y < imagePixels->getHeight(); y++) {
+			for (uint32_t x = 0; x < imagePixels->getWidth(); x++) {
+				ofColor colorAtIndex = imagePixels->getColor(x, y);
 				sumColor.red += (float)colorAtIndex.r;
 				sumColor.green += (float)colorAtIndex.g;
 				sumColor.blue += (float)colorAtIndex.b;
@@ -54,7 +48,7 @@ m_col ofApp::calculateColor(int image) {
 		sumColor.green *= div;
 		sumColor.blue *= div;
 	}
-	//imagePixels.
+
 	return sumColor;
 }
 
@@ -403,15 +397,14 @@ void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches) {
  }
 
 //haar face detection
-int ofApp::haarFaces(int image, ofxCvHaarFinder hF) {
-	ofImage* currentImage = images[image]->GetImage();
+int ofApp::haarFaces(ofImage currentImage, ofxCvHaarFinder* hF) {
 
-	hF.findHaarObjects(*currentImage);
+	currentImage.setImageType(OF_IMAGE_GRAYSCALE);
+	hF->findHaarObjects(currentImage);
 
-	//this will store it as blobs, now we need to count them
+	// This will store it as blobs, now we need to count them
 	int count = 0;
-	for (uint32_t i = 0; i < hF.blobs.size(); i++) {
+	for (size_t i = 0; i < hF->blobs.size(); i++)
 		count++;
-	}
 	return count;
 }

@@ -7,7 +7,7 @@
 #include "ofxOpenCv.h"
 #endif
 
-#define TESTING false
+#define TESTING true
 
 #define ESCAPESPEED 100
 #define SCALESPEED 1
@@ -22,7 +22,7 @@
 //--------------------------------------------------------------
 void ofApp::setup() {
 	// Set up the haar finder
-	ofxCvHaarFinder hF = ofxCvHaarFinder();
+	hF = ofxCvHaarFinder();
 	hF.setup("haarcascade_frontalface_default.xml");
 
 	// Initialize variables
@@ -217,6 +217,7 @@ void ofApp::draw() {
 //--------------------------------------------------------------
 void ofApp::loadDirectory(string directory)
 {
+
 	printf("Reading directory '");
 	cout << directory;
 	printf("'\n");
@@ -248,25 +249,39 @@ void ofApp::loadDirectory(string directory)
 	dir.listDir(directory);
 	dir.sort(); // In Linux, the file system doesn't return file lists ordered in alphabetical order
 
+	// If there are no images, stop.
 	if (dir.size() == 0)
 		return;
 
 	// Allocate the vector to have as many ThumbObject as files
 	images.resize(dir.size());
 
+	// Check if the metadata folder exists, and if not, create it
+	if (!dir.doesDirectoryExist(directory+".artwall"))
+		dir.createDirectory(directory+".artwall");
+
 	// you can now iterate through the files and load them into the ofImage vector
 	for (size_t i=0; i<images.size(); i++) 
 	{
+		ofxXmlSettings metadata;
 		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
 		if (img->GetThumbType() == None)
 		{
 			delete img;
 			continue;
 		}
+		
+		// Set the max size of the thumb
 		if (appsize.x > appsize.y)
 			img->SetMaxSize({appsize.y/2, (appsize.y/2)/img->GetSizeRatio()});
 		else
 			img->SetMaxSize({appsize.x/2, (appsize.x/2)/img->GetSizeRatio()});
+
+		// Load the thumb's metadata
+		metadata.loadFile(directory+".artwall/"+dir.getName(i)+"_metadata.xml");
+		this->GenerateMetadata(&metadata, img);
+		metadata.saveFile(directory+".artwall/"+dir.getName(i)+"_metadata.xml");
+
 		if (img->GetThumbType() == Video)
 		{
 			ofVideoPlayer* vid = img->GetVideo();
@@ -275,6 +290,94 @@ void ofApp::loadDirectory(string directory)
 		images[imagecount++] = img;
 	}
 	printf("Loaded %d images.\n\n", imagecount);
+}
+
+void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
+{
+	if (!metadata->tagExists("metadata"))
+	{
+		metadata->addTag("metadata");
+		printf("Generating metadata\n");
+	}
+	metadata->pushTag("metadata");
+
+	// Initialize the tags as empty
+	if (!metadata->tagExists("tags"))
+	{
+		metadata->addTag("tags");
+		//metadata.addValue("tag", "value");
+		metadata->pushTag("tags");
+		metadata->popTag();
+	}
+
+	// Add the luminance tag
+	if (!metadata->tagExists("luminance"))
+	{
+		float luminance = 0;
+		printf("Calculating luminance\n");
+		switch (img->GetThumbType())
+		{
+			case Video:
+				luminance = calculateLuminance(&((ofVideoPlayer*)img->GetVideo())->getPixels());
+				break;
+			case GIF:
+				luminance = calculateLuminance(&((ofImage*)img->GetGIF())->getPixels());
+				break;
+			case Image:
+				luminance = calculateLuminance(&((ofImage*)img->GetImage())->getPixels());
+				break;
+		}
+		metadata->addValue("luminance", luminance);
+	}
+
+	// Add the color tag
+	if (!metadata->tagExists("color"))
+	{
+		m_col color = {0, 0, 0};
+		printf("Calculating color\n");
+		switch (img->GetThumbType())
+		{
+			case Video:
+				color = calculateColor(&((ofVideoPlayer*)img->GetVideo())->getPixels());
+				break;
+			case GIF:
+				color = calculateColor(&((ofImage*)img->GetGIF())->getPixels());
+				break;
+			case Image:
+				color = calculateColor(&((ofImage*)img->GetImage())->getPixels());
+				break;
+		}
+		metadata->addTag("color");
+		metadata->pushTag("color");
+		metadata->addValue("red", color.red);
+		metadata->addValue("green", color.green);
+		metadata->addValue("blue", color.blue);
+		metadata->popTag();
+	}
+
+	// Add the number of faces tag
+	if (!metadata->tagExists("faces"))
+	{
+		ofImage* frame;
+		int faces = 0;
+		printf("Calculating faces\n");
+		switch (img->GetThumbType())
+		{
+			case Video:
+				frame = new ofImage();
+				frame->setFromPixels(((ofVideoPlayer*)img->GetVideo())->getPixels());
+				faces = haarFaces(*frame, &hF);
+				delete frame;
+				break;
+			case GIF:
+				faces = haarFaces(*img->GetGIF(), &hF);
+				break;
+			case Image:
+				faces = haarFaces(*img->GetImage(), &hF);
+				break;
+		}
+		metadata->addValue("faces", faces);
+	}
 }
 
 //--------------------------------------------------------------
