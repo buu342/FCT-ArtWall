@@ -14,6 +14,18 @@
         Video
     };
 
+    enum FilterType {
+        NoFilter = -1,
+        Tag = 0,
+        Luminance = 1,
+        Color = 2,
+        Faces = 3,
+        Edge = 4,
+        Texture = 5,
+        Scenes = 6,
+        Match = 7
+    };
+
     struct Vector2D{
         float x;
         float y;

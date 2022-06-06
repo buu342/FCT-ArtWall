@@ -12,6 +12,9 @@
 #include "structs.h"
 #include "thumbobj.h"
 
+#define DEFAULTAPPW 1024
+#define DEFAULTAPPH 768
+
 extern Vector2D appsize;
 extern ThumbObject* selectedImage;
 extern ThumbObject* highlightedImage;
@@ -82,4 +85,10 @@ class ofApp : public ofBaseApp {
 		Vector2D contextpos;
 		ThumbObject* contextobject;
 		bool metadataopen;
+
+		// Filters
+		int filterscount;
+		float filtersheight;
+		FilterType selectedfilter;
+		float filterslargest;
 };

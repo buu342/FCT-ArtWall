@@ -25,9 +25,19 @@
 #define CONTEXTBUTCOUNT  1
 #define CONTEXTBUTHEIGHT 24
 
+#define FILTERSBUTTONS       {"Tag", "Luminance", "Color", " Face\nCount", "     Edge\nDistribution", "Texture", "   Scene\nChanges", "Object\n Match"}
+#define FILTERSFONT          12
+#define FILTERSBUTTONSHEIGHT 48
+
 
 //--------------------------------------------------------------
 void ofApp::setup() {
+	string filters[] = FILTERSBUTTONS;
+	float ratio = appsize.x/DEFAULTAPPW;
+	filtersheight = FILTERSBUTTONSHEIGHT*ratio;
+	appsize.y = DEFAULTAPPH-filtersheight;
+	filterscount = sizeof(filters)/sizeof(filters[0]);
+
 	// Set up the haar finder
 	hF.setup("haarcascade_frontalface_default.xml");
 
@@ -38,6 +48,7 @@ void ofApp::setup() {
 	vidplayer_alpha = 0;
 	generatingmeta = false;
 	contextopen = false;
+	selectedfilter = NoFilter;
 
 	// Initialize the video player button icons
 	vidplayer_playbutton.load("Play.png");
@@ -110,7 +121,7 @@ void ofApp::update() {
 				escape = escape / sqrtf(escape.x*escape.x + escape.y*escape.y);
 				escape = escape*ESCAPESPEED*(1/MAX(1, distance));
 				escape = collisions[j]->GetPos() + escape;
-				escape = {MAX(0, MIN(escape.x, ofGetWindowWidth() - img->GetSize().x)), MAX(0, MIN(escape.y, ofGetWindowHeight() - img->GetSize().y))};
+				escape = {MAX(0, MIN(escape.x, appsize.x - img->GetSize().x)), MAX(0, MIN(escape.y, appsize.y - img->GetSize().y))};
 				collisions[j]->SetPos(escape);
 
 				// Scale down the largest image if we're still overlapping
@@ -130,7 +141,7 @@ void ofApp::update() {
 			img->SetSize(img->GetSize().x + SCALESPEED, img->GetSize().y + SCALESPEED/img->GetSizeRatio());
 
 		// Don't allow the image to go out of bounds
-		img->SetPos(MAX(0, MIN(img->GetPos().x, ofGetWindowWidth() - img->GetSize().x)), MAX(0, MIN(img->GetPos().y, ofGetWindowHeight() - img->GetSize().y)));
+		img->SetPos(MAX(0, MIN(img->GetPos().x, appsize.x - img->GetSize().x)), MAX(0, MIN(img->GetPos().y, appsize.y - img->GetSize().y)));
 
 		// Clear the memory used by the vector
 		collisions.clear();
@@ -235,7 +246,23 @@ void ofApp::draw() {
 	}
 	else
 	{
-		// Filter buttons
+		ofTrueTypeFont font;
+		string buttons[] = FILTERSBUTTONS;
+		float width = appsize.x/filterscount;
+		float ratio = appsize.x/DEFAULTAPPW;
+		font.load(OF_TTF_SANS, FILTERSFONT*ratio);
+		for (int i=0; i<filterscount; i++)
+		{
+			ofSetColor(ofColor::black);
+			ofDrawRectangle(width*i, ofGetWindowHeight()-filtersheight, width, filtersheight);
+			if (selectedfilter == i)
+				ofSetColor(192, 192, 192, 255);
+			else
+				ofSetColor(ofColor::white);
+			ofDrawRectangle(width*i+1, ofGetWindowHeight()-filtersheight+1, width-2, filtersheight-2);
+			ofSetColor(ofColor::black);
+			font.drawString(buttons[i], width*i+1+width/2 - font.stringWidth(buttons[i])/2, ofGetWindowHeight()-filtersheight/4 - font.stringHeight(buttons[i])/2);
+		}
 	}
 
 	// Context menu
@@ -318,7 +345,7 @@ void ofApp::loadDirectory(string directory)
 	{
 		string metapath = directory+".artwall/"+dir.getName(i)+"_metadata.xml";
 		ofxXmlSettings metadata;
-		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%ofGetWindowHeight());
+		ThumbObject* img = new ThumbObject(dir.getPath(i), std::rand()%ofGetWindowWidth(), std::rand()%((int)appsize.y));
 		if (img->GetThumbType() == None)
 		{
 			delete img;
@@ -570,8 +597,8 @@ void ofApp::mouseDragged(int x, int y, int button) {
 		{
 			Vector2D size = selectedImage->GetSize();
 			Vector2D gpos = selectedImage->GetGrabbedPosition();
-			x = MAX(0, MIN(x-gpos.x, ofGetWindowWidth() - size.x));
-			y = MAX(0, MIN(y-gpos.y, ofGetWindowHeight() - size.y));
+			x = MAX(0, MIN(x-gpos.x, appsize.x - size.x));
+			y = MAX(0, MIN(y-gpos.y, appsize.y - size.y));
 			selectedImage->SetPos(x, y);
 		}
 	}
@@ -579,6 +606,8 @@ void ofApp::mouseDragged(int x, int y, int button) {
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button) {
+
+	// Handle the metadata menu first
 	if (metadataopen && gui_metadatamenu.getShape().inside(x,y))
 		return;
 	else if (metadataopen)
@@ -591,7 +620,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 	{
 		bool selected = false;
 
-		// Handle context menu first
+		// Handle context menu next
 		if (contextopen)
 		{
 			if (x >= contextpos.x && y >= contextpos.y && x <= contextpos.x + CONTEXTWIDTH && y <= contextpos.y + CONTEXTBUTCOUNT*CONTEXTBUTHEIGHT)
@@ -628,6 +657,35 @@ void ofApp::mousePressed(int x, int y, int button) {
 			}
 			else
 				contextopen = false;
+			return;
+		}
+
+		// Handle filters next
+		if (y >= appsize.y)
+		{
+			float width = appsize.x/filterscount;
+			for (int i=0; i<filterscount; i++)
+			{
+				if (x >= width*i && x <= width*(i+1))
+				{
+					highlightedImage = NULL;
+					switch (i)
+					{
+						case Luminance:
+							if (selectedfilter == Luminance) { selectedfilter = NoFilter; break; } else selectedfilter = Luminance;
+							for (int j=0; j<imagecount; j++)
+							{
+								ThumbObject* img = images[j];
+								Vector2D size = img->GetMinSize();
+								Meta* meta = img->GetMetadata();
+								img->SetSize(img->GetMinSize());
+								img->SetPos(size.x + MAX(0, MIN(1, (meta->averageluminance/255)))*(appsize.x-size.x*2)-size.x/2, appsize.y/2-size.y/2);
+								img->SetPos(img->GetPos().x + std::rand()%2-1, img->GetPos().y + std::rand()%2-1);
+							}
+							break;
+					}
+				}
+			}
 			return;
 		}
 
@@ -759,6 +817,9 @@ void ofApp::windowResized(int w, int h) {
 		else
 			images[i]->SetMaxSize({appsize.x/2, (appsize.x/2)/images[i]->GetSizeRatio()});
 	}
+	float ratio = appsize.x/DEFAULTAPPW;
+	filtersheight = FILTERSBUTTONSHEIGHT*ratio;
+	appsize.y = DEFAULTAPPH-filtersheight;
 }
 
 //--------------------------------------------------------------
