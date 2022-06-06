@@ -48,7 +48,7 @@ class ofApp : public ofBaseApp {
 		void gotMessage(ofMessage msg);
 		float calculateLuminance(ofPixels* imagePixels);
 		m_col calculateColor(ofPixels* imagePixels);
-		double* calculateGabor(int image, double* avgArray);
+		double* calculateGabor(ofImage currentImage, double* avgArray);
 		double* ofApp::calculateEdges(ofImage currentImage, double* avgArray);
 		int haarFaces(ofImage currentImage, ofxCvHaarFinder* hF);
 		bool ofApp::detectMatchingFeatures(int image1, int image2);

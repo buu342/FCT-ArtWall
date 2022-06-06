@@ -41,6 +41,7 @@
         int      facecount;
         int      edgeangle;
         std::vector<double> cuts;
+        double   textures[8];
     };
 
 #endif

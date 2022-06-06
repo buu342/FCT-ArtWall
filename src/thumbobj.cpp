@@ -119,6 +119,10 @@ void ThumbObject::LoadMetadata(ofxXmlSettings* metadata, string path)
 		for (int i=0; i<metadata->getNumTags("value"); i++)
 			this->m_metadata.cuts.push_back(metadata->getValue("value", 0.0, i));
 	metadata->popTag();
+	metadata->pushTag("textures");
+	for (int i=0; i<8; i++)
+		this->m_metadata.textures[i] = metadata->getValue("value", 0.0, i);
+	metadata->popTag();
 	metadata->popTag();
 }
 

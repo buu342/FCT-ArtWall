@@ -52,10 +52,8 @@ m_col ofApp::calculateColor(ofPixels* imagePixels) {
 	return sumColor;
 }
 
-double* ofApp :: calculateGabor(int image, double* avgArray) {
+double* ofApp :: calculateGabor(ofImage currentImage, double* avgArray) {
 
-	//the image we want to fetch from
-	ofImage currentImage = *images[image]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
 	currentImage.setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
@@ -84,42 +82,42 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 	//8 times, each 45 degrees, we apply the gaborfilter to the image, and place the result on the output matrix
 	for(int i = 0; i < 8; i++){
 		double rads = (i * k) / 180.0 * M_PI;
-	cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(32,32),20.00,rads,20.00,0.50,0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
-	cv::Mat m3 = outputArr.getMat();
+		cv::filter2D(inputArr, outputArr,-1,cv::getGaborKernel(cv::Size(32,32),20.00,rads,20.00,0.50,0.00));	//when i = 0, angle is 0, when i = 1, angle is 45, etc etc
+		cv::Mat m3 = outputArr.getMat();
 
-	//the sum of all pixel values of the image
-	int sum = 0;
+		//the sum of all pixel values of the image
+		int sum = 0;
 
-	//number of rows and cols, to speed up access
-	int nRows = m3.rows;
-	int nCols = m3.cols;
+		//number of rows and cols, to speed up access
+		int nRows = m3.rows;
+		int nCols = m3.cols;
 
-	//the size of the matrix as w hole, so we can apply the average to it
-	int matSize = nCols * nRows;
+		//the size of the matrix as w hole, so we can apply the average to it
+		int matSize = nCols * nRows;
 
-	//para cada linha, para cada coluna
-	//somar o valor do elemento no i, j
-	//m3.at<int>(i,j);
-	for (int j = 0; j < nRows; j++) {
-		for (int k = 0; k < nCols; k++) {
-			//somar o valor � soma total
-			sum += m3.at<unsigned char>(j, k);
+		//para cada linha, para cada coluna
+		//somar o valor do elemento no i, j
+		//m3.at<int>(i,j);
+		for (int j = 0; j < nRows; j++) {
+			for (int k = 0; k < nCols; k++) {
+				//somar o valor � soma total
+				sum += m3.at<unsigned char>(j, k);
 
-			//converter em imagem para podermos guardar
+				//converter em imagem para podermos guardar
 			
+			}
 		}
-	}
-	//aplicar a m�dia
-	sum = sum / matSize;
+		//aplicar a m�dia
+		sum = sum / matSize;
 
-	ofxCv::toOf(m3, outputImage);
-	string direc = dir.getPath(image) + "angle-" + to_string(i);
+		ofxCv::toOf(m3, outputImage);
+		//string direc = dir.getPath(image) + "angle-" + to_string(i);
 
-	//outputImage.save("test"+ to_string(i)+".jpg");
+		//outputImage.save("test"+ to_string(i)+".jpg");
 
-	//guardar a m�dia na posi��o adequada do array
+		//guardar a m�dia na posi��o adequada do array
 	
-	avgArray[i] = sum;
+		avgArray[i] = sum;
 		
 	}
 

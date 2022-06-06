@@ -469,6 +469,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	{
 		const double threshold = 100;
 		std::vector<double>* cuts;
+		generatingmeta = true;
 
 		printf("Detecting video cuts\n");
 
@@ -489,6 +490,40 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 		}
 		metadata->popTag();
 	}
+
+	// Add the thumbnail positions tag
+	if (!metadata->tagExists("textures"))
+	{
+		ofImage* frame;
+		double* textures = new double[8];
+		generatingmeta = true;
+		printf("Detecting textures\n");
+
+		metadata->addTag("textures");
+		metadata->pushTag("textures");
+		switch (img->GetThumbType())
+		{
+			case Video:
+				frame = new ofImage();
+				((ofVideoPlayer*)img->GetVideo())->setPosition(0);
+				frame->setFromPixels(((ofVideoPlayer*)img->GetVideo())->getPixels());
+				textures = calculateGabor(*frame, textures);
+				delete frame;
+				break;
+			case GIF:
+				textures = calculateGabor(*img->GetGIF(), textures);
+				break;
+			case Image:
+				textures = calculateGabor(*img->GetImage(), textures);
+				break;
+		}
+		for (int i=0; i<8; i++)
+			metadata->addValue("value", textures[i]);
+		delete textures;
+		metadata->popTag();
+	}
+
+	// Stop the video if it was running because of cut detection
 	if (img->GetThumbType() == Video)
 	{
 		((ofVideoPlayer*)img->GetVideo())->setPosition(0);
