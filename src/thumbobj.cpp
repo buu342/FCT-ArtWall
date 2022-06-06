@@ -74,10 +74,23 @@ void ThumbObject::update()
 	{
 		ofVideoPlayer* vid = (ofVideoPlayer*)this->m_thumb;
 
-		// If the timer has elapsed, advance the video thumbnail
+		// If the timer has elapsed, advance the video thumbnail based on our cuts
 		if (highlightedImage != this && this->m_videocuttimer < ofGetElapsedTimeMillis())
 		{
-			vid->setPosition(((float)(((int)(vid->getPosition()*10.0f + 1.0f))%10))/10.0f);
+			bool newcut = false;
+			double currentcut = vid->getPosition();
+			for (int i=0; i<this->m_metadata.cuts.size(); i++)
+			{
+				if (this->m_metadata.cuts[i] > currentcut+0.000001f)
+				{
+					currentcut = this->m_metadata.cuts[i];
+					newcut = true;
+					break;
+				}
+			}
+			if (!newcut)
+				currentcut = 0;
+			vid->setPosition(currentcut);
 			this->m_videocuttimer = ofGetElapsedTimeMillis() + VIDEOCUTTIME;
 		}
 

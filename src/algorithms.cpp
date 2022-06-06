@@ -251,6 +251,7 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 		int fCounter = 0;
 	
 		std::vector<double>* cuts = new std::vector<double>();
+		cuts->push_back(0);
 
 		vid->firstFrame();
 

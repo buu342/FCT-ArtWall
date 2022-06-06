@@ -345,6 +345,7 @@ void ofApp::loadDirectory(string directory)
 	printf("Loaded %d images.\n\n", imagecount);
 }
 
+//--------------------------------------------------------------
 void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 {
 	if (!metadata->tagExists("metadata"))
@@ -548,7 +549,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 	else if (metadataopen)
 	{
 		metadataopen = false;
-		return
+		return;
 	}
 
 	if (button == OF_MOUSE_BUTTON_LEFT)
