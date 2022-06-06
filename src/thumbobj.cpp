@@ -1,4 +1,7 @@
+#include "ofApp.h"
 #include "thumbobj.h"
+
+#define VIDEOCUTTIME 1000
 
 ThumbObject::ThumbObject(string path, float x, float y)
 {
@@ -18,7 +21,7 @@ ThumbObject::ThumbObject(string path, float x, float y)
 		img->setLoopState(OF_LOOP_NORMAL);
 		img->setVolume(0);
 		img->play();
-		img->stop();
+		img->setPaused(true);
 		this->m_thumb = img;
 		this->m_thumbtype = Video;
 		this->m_thumbsizereal = {img->getWidth(), img->getHeight()};
@@ -56,17 +59,36 @@ ThumbObject::ThumbObject(string path, float x, float y)
 	this->m_grabbedpos = {0.0f, 0.0f};
 	this->m_videoplaying = false;
 	this->m_videomuted = false;
+	this->m_videocuttimer = ofGetElapsedTimeMillis() + VIDEOCUTTIME;
 }
 
 ThumbObject::~ThumbObject()
 {
-
+	this->m_metadata.tags.clear();
+	this->m_metadata.cuts.clear();
 }
 
 void ThumbObject::update()
 {
 	if (this->m_thumbtype == Video)
-	    ((ofVideoPlayer*)this->m_thumb)->update();
+	{
+		ofVideoPlayer* vid = (ofVideoPlayer*)this->m_thumb;
+
+		// If the timer has elapsed, advance the video thumbnail
+		if (highlightedImage != this && this->m_videocuttimer < ofGetElapsedTimeMillis())
+		{
+			vid->setPosition(((float)(((int)(vid->getPosition()*10.0f + 1.0f))%10))/10.0f);
+			this->m_videocuttimer = ofGetElapsedTimeMillis() + VIDEOCUTTIME;
+		}
+
+		// Update the video
+	    vid->update();
+	}
+}
+
+void ThumbObject::LoadMetadata(ofxXmlSettings* metadata)
+{
+	
 }
 
 ofImage* ThumbObject::GetImage()

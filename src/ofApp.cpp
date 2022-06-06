@@ -11,12 +11,18 @@
 
 #define ESCAPESPEED 100
 #define SCALESPEED 1
+
 #define VIDBARALPHA     128
 #define VIDBARFADESPEED 8
 #define VIDBUTTONSIZE   64
 #define VIDBUTTONSPACE  8
 #define VIDBUTTONCOUNT  4
 #define VIDBUTTONRATIO  (VIDBUTTONSIZE*VIDBUTTONCOUNT + VIDBUTTONSPACE*(VIDBUTTONCOUNT+1))
+
+#define CONTEXTFONT      12
+#define CONTEXTWIDTH     128
+#define CONTEXTBUTCOUNT  4
+#define CONTEXTBUTHEIGHT 24
 
 
 //--------------------------------------------------------------
@@ -30,6 +36,8 @@ void ofApp::setup() {
 	selectedImage = NULL;
 	highlightedImage = NULL;
 	vidplayer_alpha = 0;
+	generatingmeta = false;
+	contextopen = false;
 
 	// Initialize the video player button icons
 	vidplayer_playbutton.load("Play.png");
@@ -202,15 +210,21 @@ void ofApp::draw() {
 		ofDisableAlphaBlending();
 	}
 
-	// Show how to open a directory if none is open
+	// Show how to open a directory if none is open, otherwise show the filter buttons
 	if (imagecount == 0)
 	{
 		ofTrueTypeFont font;
 		string str = "Press CTRL + O to open a directory with images/video";
+		if (generatingmeta)
+			str = "Generating metadata";
 
 		ofSetColor(ofColor::white);
 		font.load(OF_TTF_SANS, 24);
 		font.drawString(str, ofGetWindowWidth()/2 - font.stringWidth(str)/2, ofGetWindowHeight()/2);
+	}
+	else
+	{
+		// Filter buttons
 	}
 }
 
@@ -281,6 +295,7 @@ void ofApp::loadDirectory(string directory)
 		metadata.loadFile(directory+".artwall/"+dir.getName(i)+"_metadata.xml");
 		this->GenerateMetadata(&metadata, img);
 		metadata.saveFile(directory+".artwall/"+dir.getName(i)+"_metadata.xml");
+		img->LoadMetadata(&metadata);
 
 		if (img->GetThumbType() == Video)
 		{
@@ -296,6 +311,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 {
 	if (!metadata->tagExists("metadata"))
 	{
+		generatingmeta = true;
 		metadata->addTag("metadata");
 		printf("Generating metadata\n");
 	}
@@ -304,6 +320,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	// Initialize the tags as empty
 	if (!metadata->tagExists("tags"))
 	{
+		generatingmeta = true;
 		metadata->addTag("tags");
 		//metadata.addValue("tag", "value");
 		metadata->pushTag("tags");
@@ -314,6 +331,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	if (!metadata->tagExists("luminance"))
 	{
 		float luminance = 0;
+		generatingmeta = true;
 		printf("Calculating luminance\n");
 		switch (img->GetThumbType())
 		{
@@ -334,6 +352,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	if (!metadata->tagExists("color"))
 	{
 		m_col color = {0, 0, 0};
+		generatingmeta = true;
 		printf("Calculating color\n");
 		switch (img->GetThumbType())
 		{
@@ -360,6 +379,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	{
 		ofImage* frame;
 		int faces = 0;
+		generatingmeta = true;
 		printf("Calculating faces\n");
 		switch (img->GetThumbType())
 		{
@@ -384,6 +404,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	{
 		ofImage* frame;
 		double edge[4] = {};
+		generatingmeta = true;
 		printf("Detecting edges\n");
 		switch (img->GetThumbType())
 		{
@@ -402,9 +423,8 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 		}
 		metadata->addTag("edges");
 		metadata->pushTag("edges");
-		for (int i = 0; i < 4; i++) {
-		metadata->addValue("value", edge[i]);
-		}
+		for (int i = 0; i < 4; i++)
+			metadata->addValue("value", edge[i]);
 		metadata->popTag();
 	}
 
@@ -412,18 +432,18 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 	if (!metadata->tagExists("cuts"))
 	{
 		double threshold = 0.5;
+		std::vector<double>* cuts;
 
-		printf("Detecting Thumbnail Jumps\n");
+		printf("Detecting video cuts\n");
 
 		metadata->addTag("cuts");
 		metadata->pushTag("cuts");
 		switch (img->GetThumbType())
 		{
 		case Video:
-			std::vector<double>* cuts = vidDetectCut((ofVideoPlayer*)img->GetVideo(),threshold);
-			for (int i = 0; i < cuts->size(); i++) {
+			cuts = vidDetectCut((ofVideoPlayer*)img->GetVideo(), threshold);
+			for (int i = 0; i < cuts->size(); i++)
 				metadata->addValue("value", cuts->at(i));
-			}
 			delete cuts;
 			break;
 		case GIF:
@@ -435,6 +455,8 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 		}
 		metadata->popTag();
 	}
+
+	generatingmeta = false;
 }
 
 //--------------------------------------------------------------
@@ -486,7 +508,15 @@ void ofApp::mousePressed(int x, int y, int button) {
 	{
 		bool selected = false;
 
-		// Handle the highlighted picture first
+		// Handle context menu first
+		if (contextopen && x >= contextpos.x && y >= contextpos.y && x <= contextpos.x + CONTEXTWIDTH && y <= contextpos.y + CONTEXTBUTCOUNT*CONTEXTBUTHEIGHT)
+		{
+
+		}
+		else
+			contextopen = false;
+
+		// Handle the highlighted picture next
 		if (highlightedImage != NULL && highlightedImage->IsOverlapping(x, y))
 		{
 			selectedImage = highlightedImage;
@@ -545,6 +575,8 @@ void ofApp::mousePressed(int x, int y, int button) {
 				if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
 					highlightedImage->SetVideoPlaying(false);
 				highlightedImage = img;
+				if (highlightedImage->GetThumbType() == Video)
+					((ofVideoPlayer*)highlightedImage->GetVideo())->setPosition(0);
 				images[i] = images[0];
 				images[0] = img;
 				selected = true;
@@ -559,6 +591,22 @@ void ofApp::mousePressed(int x, int y, int button) {
 			if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
 				highlightedImage->SetVideoPlaying(false);
 			highlightedImage = NULL;
+		}
+	}
+
+	if (button == OF_MOUSE_BUTTON_RIGHT)
+	{
+		// Check which image we pressed
+		for (int i=0; i<imagecount; i++)
+		{
+			ThumbObject* img = images[i];
+			if (img->IsOverlapping(x, y))
+			{
+				contextpos = {(float)x, (float)y};
+				contextopen = true;
+				contextobject = img;
+				break;
+			}
 		}
 	}
 }

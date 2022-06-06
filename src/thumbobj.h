@@ -2,33 +2,10 @@
 
 #ifndef CODE_ANALYSIS
 #include "ofMain.h"
+#include "ofxXmlSettings.h"
 #endif
 
-enum ThumbType {
-	None,
-	Image,
-	GIF,
-	Video
-};
-
-struct Vector2D{
-	float x;
-	float y;
-	inline Vector2D operator+(Vector2D a) {return {x+a.x, y+a.y};};
-	inline Vector2D operator-(Vector2D a) {return {x-a.x, y-a.y};};
-	inline Vector2D operator*(Vector2D a) {return {x*a.x, y*a.y};};
-	inline Vector2D operator/(Vector2D a) {return {x/a.x, y/a.y};};
-	inline Vector2D operator+(float a) {return {x+a, y+a};};
-	inline Vector2D operator-(float a) {return {x-a, y-a};};
-	inline Vector2D operator*(float a) {return {x*a, y*a};};
-	inline Vector2D operator/(float a) {return {x/a, y/a};};
-	inline Vector2D operator-(void) {return {-x, -y};};
-	inline bool operator==(Vector2D a) {return {x == a.x && y == a.y};};
-	inline bool operator<(Vector2D a) {return {x < a.x && y < a.y};};
-	inline bool operator>(Vector2D a) {return {x > a.x && y > a.y};};
-	inline bool operator<=(Vector2D a) {return {x <= a.x && y <= a.y};};
-	inline bool operator>=(Vector2D a) {return {x >= a.x && y >= a.y};};
-};
+#include "structs.h"
 
 class ThumbObject
 {
@@ -45,11 +22,14 @@ class ThumbObject
 		Vector2D  m_grabbedpos;
 		bool      m_videoplaying;
 		bool      m_videomuted;
+		uint64_t  m_videocuttimer;
+		Meta      m_metadata;
 
 	public:
 		ThumbObject(string path, float x, float y);
 		~ThumbObject();
 		void update();
+		void LoadMetadata(ofxXmlSettings* metadata);
 
 		ofImage*       GetImage();
 		ofImage*       GetGIF();

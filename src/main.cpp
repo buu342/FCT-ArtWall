@@ -5,6 +5,8 @@
 #include "ofApp.h"
 
 Vector2D appsize = {1024, 768};
+ThumbObject* selectedImage;
+ThumbObject* highlightedImage;
 
 //========================================================================
 int main() {

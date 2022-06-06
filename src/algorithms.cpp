@@ -1,9 +1,9 @@
-﻿#include "ofApp.h"
-
-#ifndef CODE_ANALYSIS
+﻿#ifndef CODE_ANALYSIS
 #include "ofxCv.h"
 #include "ofxOpenCv.h"
 #endif
+
+#include "ofApp.h"
 
 using cv::Mat;
 
@@ -267,8 +267,9 @@ std::vector<double>* ofApp::vidDetectCut(ofVideoPlayer * vid, double thresh) {
 		}
 
 		double val = detectCut(currFrame, nextFrame);
+		printf("%lf\n", val);
 		if (val > thresh) {
-			cuts->push_back(val);
+			cuts->push_back(fCounter);
 		}
 		//cutTotal += val;
 
