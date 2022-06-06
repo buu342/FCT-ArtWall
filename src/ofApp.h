@@ -43,12 +43,12 @@ public:
 	float calculateLuminance(ofPixels* imagePixels);
 	m_col calculateColor(ofPixels* imagePixels);
 	double* calculateGabor(int image, double* avgArray);
-	double* calculateEdges(int image, double* avgArray);
+	double* ofApp::calculateEdges(ofImage currentImage, double* avgArray);
 	int haarFaces(ofImage currentImage, ofxCvHaarFinder* hF);
 	bool ofApp::detectMatchingFeatures(int image1, int image2);
 	void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches);
 	void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc);
-	void ofApp::vidThumb(ofVideoPlayer* vid, ofImage* array);
+	void ofApp::vidThumb(ofVideoPlayer* vid, double* array);
 	double ofApp::vidDetectCut(ofVideoPlayer* vid);
 	double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of);
 

@@ -127,9 +127,9 @@ double* ofApp :: calculateGabor(int image, double* avgArray) {
 
 }
 
-double* ofApp::calculateEdges(int image, double* avgArray) {
+double* ofApp::calculateEdges(ofImage currentImage, double* avgArray) {
 	//the image we want to fetch from
-	ofImage currentImage = *images[image]->GetImage();
+
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
 	currentImage.setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
@@ -232,16 +232,13 @@ double* ofApp::calculateEdges(int image, double* avgArray) {
 
 }
 
-void ofApp::vidThumb(ofVideoPlayer* vid, ofImage *array) {
+void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 	int fCounter = 0;
-	vid->firstFrame();
 
 	while (fCounter < 10) {
-		ofPixels currFrame = vid->getPixels();
-		ofImage currImage = currFrame;
-		array[fCounter] = currImage;
+
+		array[fCounter] = (fCounter / 10.0);
 		fCounter += 1;
-		vid->setPosition(fCounter/10);
 	}
 }
 

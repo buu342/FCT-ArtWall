@@ -378,6 +378,65 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 		}
 		metadata->addValue("faces", faces);
 	}
+
+	// Add the intensity of each edge image tag
+	if (!metadata->tagExists("edges"))
+	{
+		ofImage* frame;
+		double edge[4] = {};
+		printf("Detecting edges\n");
+		switch (img->GetThumbType())
+		{
+		case Video:
+			frame = new ofImage();
+			frame->setFromPixels(((ofVideoPlayer*)img->GetVideo())->getPixels());
+			calculateEdges(*frame, edge);
+			delete frame;
+			break;
+		case GIF:
+			calculateEdges(*img->GetGIF(), edge);
+			break;
+		case Image:
+			calculateEdges(*img->GetImage(), edge);
+			break;
+		}
+		metadata->addTag("edges");
+		metadata->pushTag("edges");
+		for (int i = 0; i < 4; i++) {
+		metadata->addValue("value", edge[i]);
+		}
+		metadata->popTag();
+	}
+
+	// Add the thumbnail positions tag
+	if (!metadata->tagExists("cuts"))
+	{
+		ofImage* frame;
+		double cuts[10] = {};
+		printf("Detecting Thumbnail Jumps\n");
+
+		metadata->addTag("cuts");
+		metadata->pushTag("cuts");
+		switch (img->GetThumbType())
+		{
+		case Video:
+
+			vidThumb((ofVideoPlayer*)img->GetVideo(), cuts);
+			delete frame;
+
+			for (int i = 0; i < 10; i++) {
+				metadata->addValue("value", cuts[i]);
+			}
+			break;
+		case GIF:
+			metadata->addValue("value", 0);
+			break;
+		case Image:
+			metadata->addValue("value", 0);
+			break;
+		}
+		metadata->popTag();
+	}
 }
 
 //--------------------------------------------------------------
