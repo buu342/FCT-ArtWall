@@ -5,7 +5,7 @@
 #include "ofxOpenCv.h"
 #endif
 
-#define TESTING true
+#define TESTING false
 
 #define ESCAPESPEED 100
 #define SCALESPEED 1
