@@ -12,6 +12,9 @@
 #include "structs.h"
 #include "thumbobj.h"
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 #define DEFAULTAPPW 1024
 #define DEFAULTAPPH 768
 
@@ -54,7 +57,7 @@ class ofApp : public ofBaseApp {
 		double* calculateGabor(ofImage currentImage, double* avgArray);
 		double* ofApp::calculateEdges(ofImage currentImage, double* avgArray);
 		int haarFaces(ofImage currentImage, ofxCvHaarFinder* hF);
-		bool ofApp::detectMatchingFeatures(int image1, int image2);
+		int ofApp::detectMatchingFeatures(ofImage image1, ofImage image2);
 		void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches);
 		void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc);
 		void ofApp::vidThumb(ofVideoPlayer* vid, double* array);

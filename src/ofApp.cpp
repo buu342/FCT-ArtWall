@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include "ofApp.h"
 
 #ifndef CODE_ANALYSIS
@@ -315,6 +313,7 @@ void ofApp::draw() {
 						font.drawString("\n"+to_string((int)(((float)i)*(359.9f/4.0f))), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
 					break;
 				case Faces:
+				case Match:
 				case Scenes:
 					font.drawString("Current filter: "+filternames[selectedfilter], padding, 64*ratioh);
 					if (filtersdifferent <= 1)
@@ -962,6 +961,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 	{
 		if (x >= width*i && x <= width*(i+1))
 		{
+			ofFileDialogResult extrafile;
 			float ratio = appsize.x/DEFAULTAPPW;
 			float padding = 64*ratio;
 			if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
@@ -980,7 +980,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 						Meta* meta = img->GetMetadata();
 						img->SetSize(img->GetMinSize());
 						img->SetPos(padding + MAX(0, MIN(1, (meta->averageluminance/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 					}
 					break;
 				}
@@ -994,7 +994,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 						Meta* meta = img->GetMetadata();
 						img->SetSize(img->GetMinSize());
 						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->edgeangle/360)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 					}
 					break;
 				}
@@ -1017,7 +1017,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 						Meta* meta = img->GetMetadata();
 						img->SetSize(img->GetMinSize());
 						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->cuts.size()/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 					}
 					break;
 				}
@@ -1040,7 +1040,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 						Meta* meta = img->GetMetadata();
 						img->SetSize(img->GetMinSize());
 						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->facecount/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 					}
 					break;
 				}
@@ -1064,6 +1064,55 @@ void ofApp::HandleFilterButtons(int x, int y)
 				}
 				case Match:
 				{
+					if (selectedfilter == Match) { selectedfilter = NoFilter; break; } else selectedfilter = Match;
+					extrafile = ofSystemLoadDialog("Load image to match");
+					if (extrafile.bSuccess)
+					{
+						ofImage match;
+						if (!match.load(extrafile.filePath))
+						{
+							ofSystemAlertDialog("This is not a valid image");
+							selectedfilter = NoFilter;
+							return;
+						}
+
+						std::vector<int> matches;
+						matches.resize(imagecount);
+						filterslargest = 0;
+						filtersdifferent = 0;
+						for (int j=0; j<imagecount; j++)
+						{
+							ThumbObject* img = images[j];
+							if (img->GetThumbType() == Image)
+								matches.push_back(detectMatchingFeatures(*img->GetImage(), match));
+							else if (img->GetThumbType() == GIF)
+								matches.push_back(detectMatchingFeatures(*img->GetGIF(), match));
+							else if (img->GetThumbType() == Video)
+							{
+								ofImage* frame = new ofImage();
+								frame->setFromPixels(((ofVideoPlayer*)img->GetVideo())->getPixels());
+								matches.push_back(detectMatchingFeatures(*frame, match));
+								delete frame;
+							}
+							printf("%d\n", matches[j]);
+							if ((float)matches[j] > filterslargest)
+							{
+								filterslargest = (float)matches[j];
+								filtersdifferent++;
+							}
+						}
+						for (int j=0; j<imagecount; j++)
+						{
+							ThumbObject* img = images[j];
+							Vector2D size = img->GetMinSize();
+							Meta* meta = img->GetMetadata();
+							img->SetSize(img->GetMinSize());
+							img->SetPos(padding + MAX(0, MIN(1, ((float)matches[j]/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+							img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+						}
+					}
+					else
+						selectedfilter = NoFilter;
 					break;
 				}
 			}
@@ -1106,7 +1155,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 								Meta* meta = img->GetMetadata();
 								img->SetSize(img->GetMinSize());
 								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.red/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 							}
 							filterfurther = val;
 							filterfurtheropen = false;
@@ -1121,7 +1170,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 								Meta* meta = img->GetMetadata();
 								img->SetSize(img->GetMinSize());
 								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.green/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 							}
 							filterfurther = val;
 							filterfurtheropen = false;
@@ -1136,7 +1185,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 								Meta* meta = img->GetMetadata();
 								img->SetSize(img->GetMinSize());
 								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.blue/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 							}
 							filterfurther = val;
 							filterfurtheropen = false;
@@ -1156,7 +1205,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 									Meta* meta = img->GetMetadata();
 									img->SetSize(img->GetMinSize());
 									img->SetPos(padding + MAX(0, MIN(1, (((float)(((int)meta->textures[k])%360))/360)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-									img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+									img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 								}
 								filterfurther = k;
 								filterfurtheropen = false;

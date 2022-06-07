@@ -27,7 +27,7 @@ float ofApp::calculateLuminance(ofPixels* imagePixels) {
 		}
 		sumLuminance = sumLuminance / vectorSize;
 	}
-	return sumLuminance;
+	return MAX(0, MIN(sumLuminance, 255));
 }
 
 m_col ofApp::calculateColor(ofPixels* imagePixels) {
@@ -49,6 +49,10 @@ m_col ofApp::calculateColor(ofPixels* imagePixels) {
 		sumColor.blue *= div;
 	}
 
+	// Ensure we don't go out of bounds
+	sumColor.red = MAX(0, MIN(sumColor.red, 255));
+	sumColor.green = MAX(0, MIN(sumColor.green, 255));
+	sumColor.blue = MAX(0, MIN(sumColor.blue, 255));
 	return sumColor;
 }
 
@@ -331,28 +335,26 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 	}
 
 //using orb to check out if two images have similar descriptors
-bool ofApp::detectMatchingFeatures(int image1, int image2) {
+int ofApp::detectMatchingFeatures(ofImage image1Of, ofImage image2Of) {
 	//the first image we want to fetch from
-	ofImage* image1Of = images[image1]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
-	image1Of->setImageType(OF_IMAGE_GRAYSCALE);
+	image1Of.setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
-	ofPixels image1Pixels = image1Of->getPixels();
+	ofPixels image1Pixels = image1Of.getPixels();
 	//the input image matrix
 	ofxCvGrayscaleImage img1;
-	img1.allocate(image1Of->getWidth(), image1Of->getHeight());
+	img1.allocate(image1Of.getWidth(), image1Of.getHeight());
 	img1.setFromPixels(image1Pixels);
 	cv::Mat m1 = ofxCv::toCv(img1.getPixels());
 
 	//the second image we want to fetch from
-	ofImage* image2Of = images[image2]->GetImage();
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
-	image2Of->setImageType(OF_IMAGE_GRAYSCALE);
+	image2Of.setImageType(OF_IMAGE_GRAYSCALE);
 	//the image's pixels
-	ofPixels image2Pixels = image2Of->getPixels();
+	ofPixels image2Pixels = image2Of.getPixels();
 	//the input image matrix
 	ofxCvGrayscaleImage img2;
-	img2.allocate(image2Of->getWidth(), image2Of->getHeight());
+	img2.allocate(image2Of.getWidth(), image2Of.getHeight());
 	img2.setFromPixels(image2Pixels);
 	cv::Mat m2 = ofxCv::toCv(img2.getPixels());
 
@@ -372,7 +374,7 @@ bool ofApp::detectMatchingFeatures(int image1, int image2) {
 	match(desc1, desc2, matches);
 
 	//now, we will apply a match mask
-	vector<char> match_mask(matches.size(), 1);
+	//vector<char> match_mask(matches.size(), 1);
 
 	int counterObjects = 0;
 
@@ -382,7 +384,7 @@ bool ofApp::detectMatchingFeatures(int image1, int image2) {
 		}
 	}
 
-	return (counterObjects >= kMinMatchingSize);
+	return counterObjects;
 }
 
  void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc) {
@@ -396,11 +398,14 @@ void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches) {
 		 cv::BFMatcher desc_matcher(cv::NORM_L2, true);
 		 desc_matcher.match(desc1, desc2, matches, Mat());
 	 std::sort(matches.begin(), matches.end());
-	 while (matches.front().distance * kDistanceCoef < matches.back().distance) {
-		 matches.pop_back();
-	 }
-	 while (matches.size() > kMaxMatchingSize) {
-		 matches.pop_back();
+	 if (matches.size() > 0)
+	 {
+		 while (matches.front().distance * kDistanceCoef < matches.back().distance) {
+			 matches.pop_back();
+		 }
+		 while (matches.size() > kMaxMatchingSize) {
+			 matches.pop_back();
+		 }
 	 }
  }
 
