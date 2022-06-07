@@ -1020,7 +1020,10 @@ void ofApp::HandleFilterButtons(int x, int y)
 						Vector2D size = img->GetMinSize();
 						Meta* meta = img->GetMetadata();
 						img->SetSize(img->GetMinSize());
-						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->cuts.size()/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+						if (filtersdifferent <= 1)
+							img->SetPos(padding + 0.5*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+						else
+							img->SetPos(padding + MAX(0, MIN(1, ((float)meta->cuts.size()/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
 						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 					}
 					break;
@@ -1043,7 +1046,10 @@ void ofApp::HandleFilterButtons(int x, int y)
 						Vector2D size = img->GetMinSize();
 						Meta* meta = img->GetMetadata();
 						img->SetSize(img->GetMinSize());
-						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->facecount/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+						if (filtersdifferent <= 1)
+							img->SetPos(padding + 0.5*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+						else
+							img->SetPos(padding + MAX(0, MIN(1, ((float)meta->facecount/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
 						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 					}
 					break;
