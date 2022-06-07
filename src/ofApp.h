@@ -70,6 +70,7 @@ class ofApp : public ofBaseApp {
 		vector<ThumbObject*> images;
 		int imagecount;
 		bool generatingmeta;
+		bool physicson;
 
 		// Video player
 		float   vidplayer_alpha;
@@ -90,5 +91,6 @@ class ofApp : public ofBaseApp {
 		int filterscount;
 		float filtersheight;
 		FilterType selectedfilter;
+		int   filterfurther;
 		float filterslargest;
 };

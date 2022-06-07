@@ -25,7 +25,8 @@
 #define CONTEXTBUTCOUNT  1
 #define CONTEXTBUTHEIGHT 24
 
-#define FILTERSBUTTONS       {"Tag", "Luminance", "Color", " Face\nCount", "     Edge\nDistribution", "Texture", "   Scene\nChanges", "Object\n Match"}
+#define FILTERSBUTTONS       {"Tag", "Luminance", "Color", " Face\nCount", "     Edge\nDistribution", "Texture",                 "  Scene\nChanges",  "Object\n Match"}
+#define FILTERSNAMES         {"Tag", "Luminance", "Color", "Face count",   "Edge distribution",       "Texture characteristics", "Scene changes",     "Object match"}
 #define FILTERSFONT          12
 #define FILTERSBUTTONSHEIGHT 48
 
@@ -49,6 +50,8 @@ void ofApp::setup() {
 	generatingmeta = false;
 	contextopen = false;
 	selectedfilter = NoFilter;
+	filterfurther = -1;
+	physicson = true;
 
 	// Initialize the video player button icons
 	vidplayer_playbutton.load("Play.png");
@@ -91,57 +94,61 @@ void ofApp::update() {
 		int colcount = 0;
 		collisions.resize(imagecount);
 
-		// Check for overlaps
-		for (int j=0; j<imagecount; j++) {
-
-			// Skip ourselves
-			if (i == j)
-				continue;
-
-			// If an image overlaps, add it to our list of collisions
-			if (img->IsOverlapping(images[j]))
-				collisions[colcount++] = images[j];
-		}
-
-		// If we have collisions
-		if (colcount > 0)
+		// Allow dynamic image movement if physics is enabled
+		if (physicson)
 		{
-			// Iterate through all collided objects
-			for (int j=0; j<colcount; j++)
-			{
-				// Skip the current selected image
-				if (highlightedImage == collisions[j])
+			// Check for overlaps
+			for (int j=0; j<imagecount; j++) {
+
+				// Skip ourselves
+				if (i == j)
 					continue;
 
-				// Push the object we're colliding with away
-				Vector2D center1 = img->GetPos() + img->GetSize()/2;
-				Vector2D center2 = collisions[j]->GetPos() + collisions[j]->GetSize()/2;
-				Vector2D escape = center2 - center1;
-				float distance = sqrtf((center2.x-center1.x)*(center2.x-center1.x) + (center2.y-center1.y)*(center2.y-center1.y));
-				escape = escape / sqrtf(escape.x*escape.x + escape.y*escape.y);
-				escape = escape*ESCAPESPEED*(1/MAX(1, distance));
-				escape = collisions[j]->GetPos() + escape;
-				escape = {MAX(0, MIN(escape.x, appsize.x - img->GetSize().x)), MAX(0, MIN(escape.y, appsize.y - img->GetSize().y))};
-				collisions[j]->SetPos(escape);
+				// If an image overlaps, add it to our list of collisions
+				if (img->IsOverlapping(images[j]))
+					collisions[colcount++] = images[j];
+			}
 
-				// Scale down the largest image if we're still overlapping
-				if (img->IsOverlapping(collisions[j]))
+			// If we have collisions
+			if (colcount > 0)
+			{
+				// Iterate through all collided objects
+				for (int j=0; j<colcount; j++)
 				{
-					ThumbObject* largest = img;
-					if (img->IsOverlapping(collisions[j]) && largest->GetSize() < images[j]->GetSize())
-						largest = images[j];
-					if (highlightedImage != largest && largest->GetSize() > largest->GetMinSize())
-						largest->SetSize(largest->GetSize().x - SCALESPEED, largest->GetSize().y - SCALESPEED/largest->GetSizeRatio());
+					// Skip the current selected image
+					if (highlightedImage == collisions[j])
+						continue;
+
+					// Push the object we're colliding with away
+					Vector2D center1 = img->GetPos() + img->GetSize()/2;
+					Vector2D center2 = collisions[j]->GetPos() + collisions[j]->GetSize()/2;
+					Vector2D escape = center2 - center1;
+					float distance = sqrtf((center2.x-center1.x)*(center2.x-center1.x) + (center2.y-center1.y)*(center2.y-center1.y));
+					escape = escape / sqrtf(escape.x*escape.x + escape.y*escape.y);
+					escape = escape*ESCAPESPEED*(1/MAX(1, distance));
+					escape = collisions[j]->GetPos() + escape;
+					escape = {MAX(0, MIN(escape.x, appsize.x - img->GetSize().x)), MAX(0, MIN(escape.y, appsize.y - img->GetSize().y))};
+					collisions[j]->SetPos(escape);
+
+					// Scale down the largest image if we're still overlapping
+					if (img->IsOverlapping(collisions[j]))
+					{
+						ThumbObject* largest = img;
+						if (img->IsOverlapping(collisions[j]) && largest->GetSize() < images[j]->GetSize())
+							largest = images[j];
+						if (highlightedImage != largest && largest->GetSize() > largest->GetMinSize())
+							largest->SetSize(largest->GetSize().x - SCALESPEED, largest->GetSize().y - SCALESPEED/largest->GetSizeRatio());
+					}
 				}
 			}
-		}
 		
-		// Enlarge the image if it is not colliding with anything
-		if ((colcount == 0 || img == highlightedImage) && img->GetSize() < img->GetMaxSize())
-			img->SetSize(img->GetSize().x + SCALESPEED, img->GetSize().y + SCALESPEED/img->GetSizeRatio());
+			// Enlarge the image if it is not colliding with anything
+			if ((colcount == 0 || img == highlightedImage) && img->GetSize() < img->GetMaxSize())
+				img->SetSize(img->GetSize().x + SCALESPEED, img->GetSize().y + SCALESPEED/img->GetSizeRatio());
 
-		// Don't allow the image to go out of bounds
-		img->SetPos(MAX(0, MIN(img->GetPos().x, appsize.x - img->GetSize().x)), MAX(0, MIN(img->GetPos().y, appsize.y - img->GetSize().y)));
+			// Don't allow the image to go out of bounds
+			img->SetPos(MAX(0, MIN(img->GetPos().x, appsize.x - img->GetSize().x)), MAX(0, MIN(img->GetPos().y, appsize.y - img->GetSize().y)));
+		}
 
 		// Clear the memory used by the vector
 		collisions.clear();
@@ -249,8 +256,9 @@ void ofApp::draw() {
 		ofTrueTypeFont font;
 		string buttons[] = FILTERSBUTTONS;
 		float width = appsize.x/filterscount;
-		float ratio = appsize.x/DEFAULTAPPW;
-		font.load(OF_TTF_SANS, FILTERSFONT*ratio);
+		float ratiow = appsize.x/DEFAULTAPPW;
+		float ratioh = appsize.y/DEFAULTAPPH;
+		font.load(OF_TTF_SANS, FILTERSFONT*ratiow);
 		for (int i=0; i<filterscount; i++)
 		{
 			ofSetColor(ofColor::black);
@@ -263,6 +271,37 @@ void ofApp::draw() {
 			ofSetColor(ofColor::black);
 			font.drawString(buttons[i], width*i+1+width/2 - font.stringWidth(buttons[i])/2, ofGetWindowHeight()-filtersheight/4 - font.stringHeight(buttons[i])/2);
 		}
+		if (selectedfilter != NoFilter)
+		{
+			float padding = 64*ratiow;
+			const string filternames[] = FILTERSNAMES;
+			ofSetColor(ofColor::white);
+			switch (selectedfilter)
+			{
+				case Luminance:
+					font.drawString("Current filter: "+filternames[selectedfilter], padding, 64*ratioh);
+					for (int i=0; i<5; i++)
+						font.drawString("\n"+to_string((int)(((float)i)*(255.0f/4.0f))), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
+					break;
+				case Edge:
+					font.drawString("Current filter: "+filternames[selectedfilter], padding, 64*ratioh);
+					for (int i=0; i<5; i++)
+						font.drawString("\n"+to_string((int)(((float)i)*(359.9f/4.0f))), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
+					break;
+				case Faces:
+				case Scenes:
+					font.drawString("Current filter: "+filternames[selectedfilter], padding, 64*ratioh);
+					if (filterslargest == 0)
+						font.drawString("\n0", appsize.x/2 + font.stringHeight("0"), 64*ratioh);
+					else
+						for (int i=0; i<5; i++)
+							font.drawString("\n"+to_string(((float)i)*(filterslargest/4.0f)), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
+					break;
+			}
+		}
+		ofSetColor(ofColor::white);
+		if (!physicson)
+			font.drawString("Physics disabled", appsize.x/2-font.stringWidth("Physics disabled")/2, 32*ratioh);
 	}
 
 	// Context menu
@@ -577,6 +616,15 @@ void ofApp::keyPressed(int key)
 				break;
 		}
 	}
+	else
+	{
+		switch (key)
+		{
+			case ' ':
+				physicson = !physicson;
+				break;
+		}
+	}
 }
 
 //--------------------------------------------------------------
@@ -645,7 +693,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 								gui_metadatamenu_luminance = to_string(data->averageluminance);
 								gui_metadatamenu_color = "["+to_string((int)data->averagecolor.red)+","+to_string((int)data->averagecolor.green)+","+to_string((int)data->averagecolor.blue)+"]";
 								gui_metadatamenu_faces = to_string(data->facecount);
-								gui_metadatamenu_edge = to_string(data->averageluminance);
+								gui_metadatamenu_edge = to_string(data->edgeangle);
 								gui_metadatamenu_cuts = to_string(data->cuts.size());
 								//2*90 + 3*0 + 2*45 + 2*135 /(2+3+2+2)
 								metadataopen = true;
@@ -668,6 +716,10 @@ void ofApp::mousePressed(int x, int y, int button) {
 			{
 				if (x >= width*i && x <= width*(i+1))
 				{
+					float ratio = appsize.x/DEFAULTAPPW;
+					float padding = 64*ratio;
+					if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
+						highlightedImage->SetVideoPlaying(false);
 					highlightedImage = NULL;
 					switch (i)
 					{
@@ -679,8 +731,52 @@ void ofApp::mousePressed(int x, int y, int button) {
 								Vector2D size = img->GetMinSize();
 								Meta* meta = img->GetMetadata();
 								img->SetSize(img->GetMinSize());
-								img->SetPos(size.x + MAX(0, MIN(1, (meta->averageluminance/255)))*(appsize.x-size.x*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-1, img->GetPos().y + std::rand()%2-1);
+								img->SetPos(padding + MAX(0, MIN(1, (meta->averageluminance/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+							}
+							break;
+						case Edge:
+							if (selectedfilter == Edge) { selectedfilter = NoFilter; break; } else selectedfilter = Edge;
+							for (int j=0; j<imagecount; j++)
+							{
+								ThumbObject* img = images[j];
+								Vector2D size = img->GetMinSize();
+								Meta* meta = img->GetMetadata();
+								img->SetSize(img->GetMinSize());
+								img->SetPos(padding + MAX(0, MIN(1, ((float)meta->edgeangle/360)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+							}
+							break;
+						case Scenes:
+							if (selectedfilter == Scenes) { selectedfilter = NoFilter; break; } else selectedfilter = Scenes;
+							filterslargest = 0;
+							for (int j=0; j<imagecount; j++)
+								if (filterslargest < images[j]->GetMetadata()->cuts.size())
+									filterslargest = images[j]->GetMetadata()->cuts.size();
+							for (int j=0; j<imagecount; j++)
+							{
+								ThumbObject* img = images[j];
+								Vector2D size = img->GetMinSize();
+								Meta* meta = img->GetMetadata();
+								img->SetSize(img->GetMinSize());
+								img->SetPos(padding + MAX(0, MIN(1, ((float)meta->cuts.size()/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+							}
+							break;
+						case Faces:
+							if (selectedfilter == Faces) { selectedfilter = NoFilter; break; } else selectedfilter = Faces;
+							filterslargest = 0;
+							for (int j=0; j<imagecount; j++)
+								if (filterslargest < (float)images[j]->GetMetadata()->facecount)
+									filterslargest = (float)images[j]->GetMetadata()->facecount;
+							for (int j=0; j<imagecount; j++)
+							{
+								ThumbObject* img = images[j];
+								Vector2D size = img->GetMinSize();
+								Meta* meta = img->GetMetadata();
+								img->SetSize(img->GetMinSize());
+								img->SetPos(padding + MAX(0, MIN(1, ((float)meta->facecount/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
 							}
 							break;
 					}
@@ -819,7 +915,7 @@ void ofApp::windowResized(int w, int h) {
 	}
 	float ratio = appsize.x/DEFAULTAPPW;
 	filtersheight = FILTERSBUTTONSHEIGHT*ratio;
-	appsize.y = DEFAULTAPPH-filtersheight;
+	appsize.y -= filtersheight;
 }
 
 //--------------------------------------------------------------
