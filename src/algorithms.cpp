@@ -274,7 +274,6 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 			}
 
 			double val = detectCut(currFrame, nextFrame, vid->getWidth(), vid->getHeight());
-			//printf("%lf\n", val);
 			if (val > thresh) {
 				cuts->push_back(((double)fCounter) / ((double)vid->getTotalNumFrames()));
 			}
@@ -335,7 +334,7 @@ void ofApp::vidThumb(ofVideoPlayer* vid, double *array) {
 	}
 
 //using orb to check out if two images have similar descriptors
-int ofApp::detectMatchingFeatures(ofImage image1Of, ofImage image2Of) {
+float ofApp::detectMatchingFeatures(ofImage image1Of, ofImage image2Of) {
 	//the first image we want to fetch from
 	//we convert it in grayscale so each pixel only has one value, important for performing the calculations further on
 	image1Of.setImageType(OF_IMAGE_GRAYSCALE);
@@ -374,7 +373,7 @@ int ofApp::detectMatchingFeatures(ofImage image1Of, ofImage image2Of) {
 	match(desc1, desc2, matches);
 
 	//now, we will apply a match mask
-	//vector<char> match_mask(matches.size(), 1);
+	vector<char> match_mask(matches.size(), 1);
 
 	int counterObjects = 0;
 
@@ -384,7 +383,9 @@ int ofApp::detectMatchingFeatures(ofImage image1Of, ofImage image2Of) {
 		}
 	}
 
-	return counterObjects;
+	printf("%f\n", ((float)counterObjects)/((float)kMaxMatchingSize));
+
+	return ((float)counterObjects)/((float)kMaxMatchingSize);
 }
 
  void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc) {

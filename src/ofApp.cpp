@@ -313,7 +313,6 @@ void ofApp::draw() {
 						font.drawString("\n"+to_string((int)(((float)i)*(359.9f/4.0f))), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
 					break;
 				case Faces:
-				case Match:
 				case Scenes:
 					font.drawString("Current filter: "+filternames[selectedfilter], padding, 64*ratioh);
 					if (filtersdifferent <= 1)
@@ -343,6 +342,11 @@ void ofApp::draw() {
 						font.drawString("Current filter: Tag ("+filters_tags[filterfurther]+")", padding, 64*ratioh);
 					font.drawString("\nFalse", 1*appsize.x/4-font.stringWidth("False")/2, 64*ratioh);
 					font.drawString("\nTrue", 3*appsize.x/4-font.stringWidth("True")/2, 64*ratioh);
+					break;
+				case Match:
+					font.drawString("Current filter: Object Match", padding, 64*ratioh);
+					for (int i=0; i<5; i++)
+						font.drawString("\n"+to_string((int)(((float)i)*(100.0f/4.0f))), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
 					break;
 
 			}
@@ -1076,30 +1080,25 @@ void ofApp::HandleFilterButtons(int x, int y)
 							return;
 						}
 
-						std::vector<int> matches;
-						matches.resize(imagecount);
+						std::vector<float> matches;
 						filterslargest = 0;
 						filtersdifferent = 0;
 						for (int j=0; j<imagecount; j++)
 						{
+							float ret = 0;
 							ThumbObject* img = images[j];
 							if (img->GetThumbType() == Image)
-								matches.push_back(detectMatchingFeatures(*img->GetImage(), match));
+								ret = detectMatchingFeatures(*img->GetImage(), match);
 							else if (img->GetThumbType() == GIF)
-								matches.push_back(detectMatchingFeatures(*img->GetGIF(), match));
+								ret = detectMatchingFeatures(*img->GetGIF(), match);
 							else if (img->GetThumbType() == Video)
 							{
 								ofImage* frame = new ofImage();
 								frame->setFromPixels(((ofVideoPlayer*)img->GetVideo())->getPixels());
-								matches.push_back(detectMatchingFeatures(*frame, match));
+								ret = detectMatchingFeatures(*frame, match);
 								delete frame;
 							}
-							printf("%d\n", matches[j]);
-							if ((float)matches[j] > filterslargest)
-							{
-								filterslargest = (float)matches[j];
-								filtersdifferent++;
-							}
+							matches.push_back(ret);
 						}
 						for (int j=0; j<imagecount; j++)
 						{
@@ -1107,7 +1106,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 							Vector2D size = img->GetMinSize();
 							Meta* meta = img->GetMetadata();
 							img->SetSize(img->GetMinSize());
-							img->SetPos(padding + MAX(0, MIN(1, ((float)matches[j]/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+							img->SetPos(padding + MAX(0, MIN(1, matches[j]))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
 							img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
 						}
 					}

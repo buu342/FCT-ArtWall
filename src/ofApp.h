@@ -57,7 +57,7 @@ class ofApp : public ofBaseApp {
 		double* calculateGabor(ofImage currentImage, double* avgArray);
 		double* ofApp::calculateEdges(ofImage currentImage, double* avgArray);
 		int haarFaces(ofImage currentImage, ofxCvHaarFinder* hF);
-		int ofApp::detectMatchingFeatures(ofImage image1, ofImage image2);
+		float ofApp::detectMatchingFeatures(ofImage image1, ofImage image2);
 		void ofApp::match(cv::Mat& desc1, cv::Mat& desc2, vector<cv::DMatch>& matches);
 		void ofApp::detectAndCompute(cv::Mat& img, vector<cv::KeyPoint>& kpts, cv::Mat& desc);
 		void ofApp::vidThumb(ofVideoPlayer* vid, double* array);
