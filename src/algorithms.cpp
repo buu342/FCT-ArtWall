@@ -383,8 +383,6 @@ float ofApp::detectMatchingFeatures(ofImage image1Of, ofImage image2Of) {
 		}
 	}
 
-	printf("%f\n", ((float)counterObjects)/((float)kMaxMatchingSize));
-
 	return ((float)counterObjects)/((float)kMaxMatchingSize);
 }
 
