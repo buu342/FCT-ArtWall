@@ -56,8 +56,7 @@ void ofApp::setup() {
 	filterfurther = -1;
 	filterfurtheropen = false;
 	physicson = true;
-	filters_tags = NULL;
-	filterstagcount = 0;
+	filters_tags.clear();
 
 	// Initialize the video player button icons
 	vidplayer_playbutton.load("Play.png");
@@ -284,6 +283,7 @@ void ofApp::draw() {
 				{
 					case Color: furthercount = sizeof(filters_color)/sizeof(filters_color[0]); strings = filters_color; break;
 					case Texture: furthercount = sizeof(filters_texture)/sizeof(filters_texture[0]); strings = filters_texture; break;
+					case Tag: furthercount = filters_tags.size(); strings = &filters_tags[0]; break;
 				}
 				for (int j=1; j<furthercount+1; j++)
 				{
@@ -338,6 +338,12 @@ void ofApp::draw() {
 							font.drawString("Current filter: "+filternames[selectedfilter]+" ("+filters_texture[i]+")", padding, 64*ratioh);
 					for (int i=0; i<5; i++)
 						font.drawString("\n"+to_string((int)(((float)i)*(360.0f/4.0f))), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
+					break;
+				case Tag:
+					if (filterfurtheropen) break;
+						font.drawString("Current filter: Tag ("+filters_tags[filterfurther]+")", padding, 64*ratioh);
+					font.drawString("\nFalse", 1*appsize.x/4-font.stringWidth("False")/2, 64*ratioh);
+					font.drawString("\nTrue", 3*appsize.x/4-font.stringWidth("True")/2, 64*ratioh);
 					break;
 
 			}
@@ -406,10 +412,7 @@ void ofApp::loadDirectory(string directory)
 	selectedImage = NULL;
 	highlightedImage = NULL;
 	vidplayer_alpha = 0;
-	if (filters_tags != NULL)
-		delete filters_tags;
-	filters_tags = NULL;
-	filterstagcount = 0;
+	filters_tags.clear();
 
 	// Get the images from the given directory
 	dir.listDir(directory);
@@ -453,6 +456,7 @@ void ofApp::loadDirectory(string directory)
 			generatingmeta = false;
 		}
 		img->LoadMetadata(&metadata, metapath);
+		this->RegenerateTagList();
 		images[imagecount++] = img;
 	}
 	printf("Loaded %d images.\n\n", imagecount);
@@ -945,6 +949,9 @@ void ofApp::OnTagsChanged(string & text)
 	metadata.popTag();
 	metadata.saveFile(contextobject->GetMetadata()->path);
 	cout << "Tags changed successfully on '"+contextobject->GetMetadata()->path+"'\n";
+
+	// Regenerate our list of tags
+	this->RegenerateTagList();
 }
 
 //--------------------------------------------------------------
@@ -1073,7 +1080,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 	{
 		case Texture: submenucount = 8; break;
 		case Color: submenucount = 3; break;
-		case Tag: submenucount = filterstagcount; break;
+		case Tag: submenucount = filters_tags.size(); break;
 	}
 
 	if (x >= width*selectedfilter && x <= width*(selectedfilter+1) && y<=appsize.y && y>=appsize.y-submenucount*filtersheight)
@@ -1138,7 +1145,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 					}
 					case Texture:
 					{
-						for (int k=0; k<8; k++)
+						for (int k=0; k<submenucount; k++)
 						{
 							if (val == k)
 							{
@@ -1157,6 +1164,39 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 							}
 						}
 					}
+					case Tag:
+					{
+						for (int k=0; k<submenucount; k++)
+						{
+							if (val == k)
+							{
+								for (int j=0; j<imagecount; j++)
+								{
+									ThumbObject* img = images[j];
+									Vector2D size = img->GetMinSize();
+									Meta* meta = img->GetMetadata();
+									bool hastag = false;
+									img->SetSize(img->GetMinSize());
+									for (int m=0; m<meta->tags.size(); m++)
+									{
+										if (meta->tags[m] == filters_tags[k])
+										{
+											hastag = true;
+											break;
+										}
+									}
+									if (hastag)
+										img->SetPos(3*appsize.x/4-size.x/2, appsize.y/2-size.y/2);
+									else
+										img->SetPos(1*appsize.x/4-size.x/2, appsize.y/2-size.y/2);
+									img->SetPos(img->GetPos().x + std::rand()%((int)size.x)-size.x/2, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+								}
+								filterfurther = k;
+								filterfurtheropen = false;
+								return;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -1164,4 +1204,17 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 	}
 	filterfurtheropen = false;
 	selectedfilter = NoFilter;
+}
+
+//--------------------------------------------------------------
+void ofApp::RegenerateTagList()
+{
+	filters_tags.clear();
+	for (int i=0; i<imagecount; i++)
+	{
+		std::vector<string> tags = images[i]->GetMetadata()->tags;
+		for (int j=0; j<tags.size(); j++)
+			if (!(std::find(filters_tags.begin(), filters_tags.end(), tags[j]) != filters_tags.end()) && tags[j] != "")
+				filters_tags.push_back(tags[j]);
+	}
 }

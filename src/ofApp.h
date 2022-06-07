@@ -63,6 +63,7 @@ class ofApp : public ofBaseApp {
 		void OnTagsChanged(string & text);
 		void HandleFilterButtons(int x, int y);
 		void HandleFurtherFilterButtons(int x, int y);
+		void RegenerateTagList();
 
 	private:
 
@@ -97,6 +98,5 @@ class ofApp : public ofBaseApp {
 		bool  filterfurtheropen;
 		float filterslargest;
 		int   filtersdifferent;
-		int   filterstagcount;
-		string* filters_tags;
+		std::vector<string> filters_tags;
 };
