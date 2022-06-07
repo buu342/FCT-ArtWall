@@ -61,6 +61,8 @@ class ofApp : public ofBaseApp {
 		std::vector<double>* ofApp::vidDetectCut(ofVideoPlayer* vid, double thresh);
 		double ofApp::detectCut(ofPixels image1Of, ofPixels image2Of, int w, int h);
 		void OnTagsChanged(string & text);
+		void HandleFilterButtons(int x, int y);
+		void HandleFurtherFilterButtons(int x, int y);
 
 	private:
 
@@ -92,5 +94,9 @@ class ofApp : public ofBaseApp {
 		float filtersheight;
 		FilterType selectedfilter;
 		int   filterfurther;
+		bool  filterfurtheropen;
 		float filterslargest;
+		int   filtersdifferent;
+		int   filterstagcount;
+		string* filters_tags;
 };

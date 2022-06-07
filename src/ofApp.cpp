@@ -30,6 +30,9 @@
 #define FILTERSFONT          12
 #define FILTERSBUTTONSHEIGHT 48
 
+string filters_color[] = {"Red", "Green", "Blue"};
+string filters_texture[] = {"0º", "22.5º", "45º", "67.5º", "90º", "112.5º", "135º", "157.5º"};
+
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -51,7 +54,10 @@ void ofApp::setup() {
 	contextopen = false;
 	selectedfilter = NoFilter;
 	filterfurther = -1;
+	filterfurtheropen = false;
 	physicson = true;
+	filters_tags = NULL;
+	filterstagcount = 0;
 
 	// Initialize the video player button icons
 	vidplayer_playbutton.load("Play.png");
@@ -270,6 +276,26 @@ void ofApp::draw() {
 			ofDrawRectangle(width*i+1, ofGetWindowHeight()-filtersheight+1, width-2, filtersheight-2);
 			ofSetColor(ofColor::black);
 			font.drawString(buttons[i], width*i+1+width/2 - font.stringWidth(buttons[i])/2, ofGetWindowHeight()-filtersheight/4 - font.stringHeight(buttons[i])/2);
+			if (filterfurtheropen && i == selectedfilter)
+			{
+				string *strings;
+				int furthercount = 0;
+				switch (selectedfilter) 
+				{
+					case Color: furthercount = sizeof(filters_color)/sizeof(filters_color[0]); strings = filters_color; break;
+					case Texture: furthercount = sizeof(filters_texture)/sizeof(filters_texture[0]); strings = filters_texture; break;
+				}
+				for (int j=1; j<furthercount+1; j++)
+				{
+					int strnum = furthercount-j;
+					ofSetColor(ofColor::black);
+					ofDrawRectangle(width*i, ofGetWindowHeight()-filtersheight-j*filtersheight, width, filtersheight);
+					ofSetColor(ofColor::white);
+					ofDrawRectangle(width*i+1, ofGetWindowHeight()-filtersheight+1-j*filtersheight, width-2, filtersheight-2);
+					ofSetColor(ofColor::black);
+					font.drawString(strings[strnum], width*i+1+width/2 - font.stringWidth(strings[strnum])/2, ofGetWindowHeight()-filtersheight/4 - font.stringHeight(strings[strnum])/2 - j*filtersheight);
+				}
+			}
 		}
 		if (selectedfilter != NoFilter)
 		{
@@ -291,12 +317,29 @@ void ofApp::draw() {
 				case Faces:
 				case Scenes:
 					font.drawString("Current filter: "+filternames[selectedfilter], padding, 64*ratioh);
-					if (filterslargest == 0)
-						font.drawString("\n0", appsize.x/2 + font.stringHeight("0"), 64*ratioh);
+					if (filtersdifferent <= 1)
+						font.drawString("\n"+to_string(filterslargest), appsize.x/2 + font.stringHeight(to_string(filterslargest)), 64*ratioh);
 					else
-						for (int i=0; i<5; i++)
-							font.drawString("\n"+to_string(((float)i)*(filterslargest/4.0f)), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
+						for (int i=0; i<MIN(filtersdifferent, 4)+1; i++)
+							font.drawString("\n"+to_string((int)(((float)i)*(filterslargest/((float)MIN(filtersdifferent, 4)-1)))), padding+((appsize.x-padding*2)/((float)MIN(filtersdifferent, 4)-1))*i, 64*ratioh);
 					break;
+				case Color:
+					if (filterfurtheropen) break;
+					for (int i=0; i<3; i++)
+						if (filterfurther == i)
+							font.drawString("Current filter: "+filternames[selectedfilter]+" ("+filters_color[i]+")", padding, 64*ratioh);
+					for (int i=0; i<5; i++)
+						font.drawString("\n"+to_string((int)(((float)i)*(255.0f/4.0f))), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
+					break;
+				case Texture:
+					if (filterfurtheropen) break;
+					for (int i=0; i<8; i++)
+						if (filterfurther == i)
+							font.drawString("Current filter: "+filternames[selectedfilter]+" ("+filters_texture[i]+")", padding, 64*ratioh);
+					for (int i=0; i<5; i++)
+						font.drawString("\n"+to_string((int)(((float)i)*(360.0f/4.0f))), padding+((appsize.x-padding*2)/4)*i, 64*ratioh);
+					break;
+
 			}
 		}
 		ofSetColor(ofColor::white);
@@ -363,6 +406,10 @@ void ofApp::loadDirectory(string directory)
 	selectedImage = NULL;
 	highlightedImage = NULL;
 	vidplayer_alpha = 0;
+	if (filters_tags != NULL)
+		delete filters_tags;
+	filters_tags = NULL;
+	filterstagcount = 0;
 
 	// Get the images from the given directory
 	dir.listDir(directory);
@@ -711,77 +758,14 @@ void ofApp::mousePressed(int x, int y, int button) {
 		// Handle filters next
 		if (y >= appsize.y)
 		{
-			float width = appsize.x/filterscount;
-			for (int i=0; i<filterscount; i++)
-			{
-				if (x >= width*i && x <= width*(i+1))
-				{
-					float ratio = appsize.x/DEFAULTAPPW;
-					float padding = 64*ratio;
-					if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
-						highlightedImage->SetVideoPlaying(false);
-					highlightedImage = NULL;
-					switch (i)
-					{
-						case Luminance:
-							if (selectedfilter == Luminance) { selectedfilter = NoFilter; break; } else selectedfilter = Luminance;
-							for (int j=0; j<imagecount; j++)
-							{
-								ThumbObject* img = images[j];
-								Vector2D size = img->GetMinSize();
-								Meta* meta = img->GetMetadata();
-								img->SetSize(img->GetMinSize());
-								img->SetPos(padding + MAX(0, MIN(1, (meta->averageluminance/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
-							}
-							break;
-						case Edge:
-							if (selectedfilter == Edge) { selectedfilter = NoFilter; break; } else selectedfilter = Edge;
-							for (int j=0; j<imagecount; j++)
-							{
-								ThumbObject* img = images[j];
-								Vector2D size = img->GetMinSize();
-								Meta* meta = img->GetMetadata();
-								img->SetSize(img->GetMinSize());
-								img->SetPos(padding + MAX(0, MIN(1, ((float)meta->edgeangle/360)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
-							}
-							break;
-						case Scenes:
-							if (selectedfilter == Scenes) { selectedfilter = NoFilter; break; } else selectedfilter = Scenes;
-							filterslargest = 0;
-							for (int j=0; j<imagecount; j++)
-								if (filterslargest < images[j]->GetMetadata()->cuts.size())
-									filterslargest = images[j]->GetMetadata()->cuts.size();
-							for (int j=0; j<imagecount; j++)
-							{
-								ThumbObject* img = images[j];
-								Vector2D size = img->GetMinSize();
-								Meta* meta = img->GetMetadata();
-								img->SetSize(img->GetMinSize());
-								img->SetPos(padding + MAX(0, MIN(1, ((float)meta->cuts.size()/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
-							}
-							break;
-						case Faces:
-							if (selectedfilter == Faces) { selectedfilter = NoFilter; break; } else selectedfilter = Faces;
-							filterslargest = 0;
-							for (int j=0; j<imagecount; j++)
-								if (filterslargest < (float)images[j]->GetMetadata()->facecount)
-									filterslargest = (float)images[j]->GetMetadata()->facecount;
-							for (int j=0; j<imagecount; j++)
-							{
-								ThumbObject* img = images[j];
-								Vector2D size = img->GetMinSize();
-								Meta* meta = img->GetMetadata();
-								img->SetSize(img->GetMinSize());
-								img->SetPos(padding + MAX(0, MIN(1, ((float)meta->facecount/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
-							}
-							break;
-					}
-				}
-			}
+			HandleFilterButtons(x, y);
+			return;
+		}
+
+		// Handle further filter buttons
+		if (filterfurtheropen)
+		{
+			HandleFurtherFilterButtons(x, y);
 			return;
 		}
 
@@ -961,4 +945,223 @@ void ofApp::OnTagsChanged(string & text)
 	metadata.popTag();
 	metadata.saveFile(contextobject->GetMetadata()->path);
 	cout << "Tags changed successfully on '"+contextobject->GetMetadata()->path+"'\n";
+}
+
+//--------------------------------------------------------------
+void ofApp::HandleFilterButtons(int x, int y)
+{
+	float width = appsize.x/filterscount;
+	for (int i=0; i<filterscount; i++)
+	{
+		if (x >= width*i && x <= width*(i+1))
+		{
+			float ratio = appsize.x/DEFAULTAPPW;
+			float padding = 64*ratio;
+			if (highlightedImage != NULL && highlightedImage->GetThumbType() == Video)
+				highlightedImage->SetVideoPlaying(false);
+			highlightedImage = NULL;
+			filtersdifferent = 0;
+			switch (i)
+			{
+				case Luminance:
+				{
+					if (selectedfilter == Luminance) { selectedfilter = NoFilter; break; } else selectedfilter = Luminance;
+					for (int j=0; j<imagecount; j++)
+					{
+						ThumbObject* img = images[j];
+						Vector2D size = img->GetMinSize();
+						Meta* meta = img->GetMetadata();
+						img->SetSize(img->GetMinSize());
+						img->SetPos(padding + MAX(0, MIN(1, (meta->averageluminance/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+					}
+					break;
+				}
+				case Edge:
+				{
+					if (selectedfilter == Edge) { selectedfilter = NoFilter; break; } else selectedfilter = Edge;
+					for (int j=0; j<imagecount; j++)
+					{
+						ThumbObject* img = images[j];
+						Vector2D size = img->GetMinSize();
+						Meta* meta = img->GetMetadata();
+						img->SetSize(img->GetMinSize());
+						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->edgeangle/360)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+					}
+					break;
+				}
+				case Scenes:
+				{
+					if (selectedfilter == Scenes) { selectedfilter = NoFilter; break; } else selectedfilter = Scenes;
+					filterslargest = 0;
+					for (int j=0; j<imagecount; j++)
+					{
+						if (filterslargest < images[j]->GetMetadata()->cuts.size())
+						{
+							filterslargest = images[j]->GetMetadata()->cuts.size();
+							filtersdifferent++;
+						}
+					}
+					for (int j=0; j<imagecount; j++)
+					{
+						ThumbObject* img = images[j];
+						Vector2D size = img->GetMinSize();
+						Meta* meta = img->GetMetadata();
+						img->SetSize(img->GetMinSize());
+						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->cuts.size()/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+					}
+					break;
+				}
+				case Faces:
+				{
+					if (selectedfilter == Faces) { selectedfilter = NoFilter; break; } else selectedfilter = Faces;
+					filterslargest = 0;
+					for (int j=0; j<imagecount; j++)
+					{
+						if (filterslargest < (float)images[j]->GetMetadata()->facecount)
+						{
+							filterslargest = (float)images[j]->GetMetadata()->facecount;
+							filtersdifferent++;
+						}
+					}
+					for (int j=0; j<imagecount; j++)
+					{
+						ThumbObject* img = images[j];
+						Vector2D size = img->GetMinSize();
+						Meta* meta = img->GetMetadata();
+						img->SetSize(img->GetMinSize());
+						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->facecount/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+					}
+					break;
+				}
+				case Color:
+				{
+					if (selectedfilter == Color) { selectedfilter = NoFilter; filterfurtheropen = false; } 
+					else { selectedfilter = Color; filterfurtheropen = true; filterfurther = -1; }
+					break;
+				}
+				case Tag:
+				{
+					if (selectedfilter == Tag) { selectedfilter = NoFilter; filterfurtheropen = false; } 
+					else { selectedfilter = Tag; filterfurtheropen = true; filterfurther = -1; }
+					break;
+				}
+				case Texture:
+				{
+					if (selectedfilter == Texture) { selectedfilter = NoFilter; filterfurtheropen = false; } 
+					else { selectedfilter = Texture; filterfurtheropen = true; filterfurther = -1; }
+					break;
+				}
+				case Match:
+				{
+					break;
+				}
+			}
+		}
+	}
+}
+
+//--------------------------------------------------------------
+void ofApp::HandleFurtherFilterButtons(int x, int y)
+{
+	float width = appsize.x/filterscount;
+	float submenucount = 0;
+	switch (selectedfilter)
+	{
+		case Texture: submenucount = 8; break;
+		case Color: submenucount = 3; break;
+		case Tag: submenucount = filterstagcount; break;
+	}
+
+	if (x >= width*selectedfilter && x <= width*(selectedfilter+1) && y<=appsize.y && y>=appsize.y-submenucount*filtersheight)
+	{
+		float ratio = appsize.x/DEFAULTAPPW;
+		float padding = 64*ratio;
+		filtersdifferent = 0;
+		for (int i=0; i<submenucount; i++)
+		{
+			int val = (submenucount-i)-1;
+			if (y <= appsize.y - filtersheight*i && y >= appsize.y-filtersheight*(i+1))
+			{
+				switch (selectedfilter)
+				{
+					case Color:
+					{
+						if (val == 0)
+						{
+							for (int j=0; j<imagecount; j++)
+							{
+								ThumbObject* img = images[j];
+								Vector2D size = img->GetMinSize();
+								Meta* meta = img->GetMetadata();
+								img->SetSize(img->GetMinSize());
+								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.red/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+							}
+							filterfurther = val;
+							filterfurtheropen = false;
+							return;
+						}
+						else if (val == 1)
+						{
+							for (int j=0; j<imagecount; j++)
+							{
+								ThumbObject* img = images[j];
+								Vector2D size = img->GetMinSize();
+								Meta* meta = img->GetMetadata();
+								img->SetSize(img->GetMinSize());
+								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.green/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+							}
+							filterfurther = val;
+							filterfurtheropen = false;
+							return;
+						}
+						else if (val == 2)
+						{
+							for (int j=0; j<imagecount; j++)
+							{
+								ThumbObject* img = images[j];
+								Vector2D size = img->GetMinSize();
+								Meta* meta = img->GetMetadata();
+								img->SetSize(img->GetMinSize());
+								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.blue/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+							}
+							filterfurther = val;
+							filterfurtheropen = false;
+							return;
+						}
+					}
+					case Texture:
+					{
+						for (int k=0; k<8; k++)
+						{
+							if (val == k)
+							{
+								for (int j=0; j<imagecount; j++)
+								{
+									ThumbObject* img = images[j];
+									Vector2D size = img->GetMinSize();
+									Meta* meta = img->GetMetadata();
+									img->SetSize(img->GetMinSize());
+									img->SetPos(padding + MAX(0, MIN(1, (((float)(((int)meta->textures[k])%360))/360)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
+									img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%2-5);
+								}
+								filterfurther = k;
+								filterfurtheropen = false;
+								return;
+							}
+						}
+					}
+				}
+			}
+		}
+
+	}
+	filterfurtheropen = false;
+	selectedfilter = NoFilter;
 }
