@@ -20,3 +20,4 @@ This project consists of a dynamic image and video viewer. You select a director
 6. If the highlighted object is a video, video playback options will appear if the mouse is currently hovering over the video.
 7. On the bottom you have a wide selection of filters which you can apply to the objects.
 8. You can right click on an image to open a context menu which will allow you to open the file, or edit and view its metadata.
+9. Pressing space bar will pause all physics.
