@@ -475,12 +475,26 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="resources\haarcascade_frontalface_default.xml" />
-    <CopyFileToFolders Include="resources\Back.png" />
-    <CopyFileToFolders Include="resources\Forward.png" />
-    <CopyFileToFolders Include="resources\Mute.png" />
-    <CopyFileToFolders Include="resources\Pause.png" />
-    <CopyFileToFolders Include="resources\Play.png" />
-    <CopyFileToFolders Include="resources\Sound.png" />
+    <CopyFileToFolders Include="resources\Back.png">
+      <Filter>resources</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="resources\Forward.png">
+      <Filter>resources</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="resources\haarcascade_frontalface_default.xml">
+      <Filter>resources</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="resources\Mute.png">
+      <Filter>resources</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="resources\Pause.png">
+      <Filter>resources</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="resources\Play.png">
+      <Filter>resources</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="resources\Sound.png">
+      <Filter>resources</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

@@ -78,7 +78,7 @@ class ofApp : public ofBaseApp {
 		ofxCvHaarFinder hF;
 		ofDirectory dir;
 		vector<ThumbObject*> images;
-		int imagecount;
+		size_t imagecount;
 		bool generatingmeta;
 		bool physicson;
 

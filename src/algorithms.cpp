@@ -21,7 +21,7 @@ float ofApp::calculateLuminance(ofPixels* imagePixels) {
 	float sumLuminance = 0;
 	size_t vectorSize = imagePixels->getWidth() * imagePixels->getHeight();
 	if (vectorSize > 0) {
-		for (int i = 0; i < vectorSize; i++) {
+		for (size_t i = 0; i < vectorSize; i++) {
 			ofColor colorAtIndex = imagePixels->getColor(i);
 			sumLuminance += luminanceFunction(colorAtIndex);
 		}
@@ -377,7 +377,7 @@ float ofApp::detectMatchingFeatures(ofImage image1Of, ofImage image2Of) {
 
 	int counterObjects = 0;
 
-	for (int i = 0; i < matches.size();i++) {
+	for (size_t i = 0; i < matches.size();i++) {
 		if (matches[i].distance < kDistanceCoef) {
 			counterObjects++;
 		}

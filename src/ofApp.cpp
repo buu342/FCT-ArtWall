@@ -92,7 +92,7 @@ void ofApp::update() {
 	vector<int> pushcount(imagecount, 0);
 
 	// Iterate through all loaded thumbs
-	for (int i=0; i<imagecount; i++) 
+	for (size_t i=0; i<imagecount; i++) 
 	{
 		// Initialize a bunch of helper variables
 		ThumbObject* img = images[i];
@@ -144,7 +144,7 @@ void ofApp::update() {
 			}
 
 			// Check for overlaps
-			for (int j=0; j<imagecount; j++) 
+			for (size_t j=0; j<imagecount; j++) 
 			{
 				// Skip ourselves or the highlighted image, or images that have been pushed too much
 				if (i == j || images[j] == highlightedImage)
@@ -344,7 +344,7 @@ void ofApp::draw() {
 					case Texture: furthercount = sizeof(filters_texture)/sizeof(filters_texture[0]); strings = filters_texture; break;
 					case Tag: furthercount = filters_tags.size(); strings = &filters_tags[0]; break;
 				}
-				for (int j=1; j<furthercount+1; j++)
+				for (size_t j=1; j<furthercount+1; j++)
 				{
 					size_t strnum = furthercount-j;
 					ofSetColor(ofColor::black);
@@ -660,7 +660,7 @@ void ofApp::GenerateMetadata(ofxXmlSettings* metadata, ThumbObject* img)
 		{
 			case Video:
 				cuts = vidDetectCut((ofVideoPlayer*)img->GetVideo(), threshold);
-				for (int i = 0; i < cuts->size(); i++)
+				for (size_t i = 0; i < cuts->size(); i++)
 					metadata->addValue("value", (double)cuts->at(i));
 				delete cuts;
 				break;
@@ -797,7 +797,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 						switch (i)
 						{
 							case 0:
-								for (int j=0; j<data->tags.size(); j++)
+								for (size_t j=0; j<data->tags.size(); j++)
 								{
 									if (tagsstring == "")
 										tagsstring = data->tags[j];
@@ -885,7 +885,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 		}
 
 		// Otherwise, check which image we pressed
-		for (int i=0; i<imagecount; i++)
+		for (size_t i=0; i<imagecount; i++)
 		{
 			ThumbObject* img = images[i];
 			Vector2D pos = img->GetPos();
@@ -920,7 +920,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 		bool selected = false;
 
 		// Check which image we pressed
-		for (int i=0; i<imagecount; i++)
+		for (size_t i=0; i<imagecount; i++)
 		{
 			ThumbObject* img = images[i];
 			if (img->IsOverlapping(x, y))
@@ -958,7 +958,7 @@ void ofApp::mouseExited(int x, int y) {
 //--------------------------------------------------------------
 void ofApp::windowResized(int w, int h) {
 	appsize = {(float)w, (float)h};
-	for (int i=0; i<imagecount; i++)
+	for (size_t i=0; i<imagecount; i++)
 	{
 		if (appsize.x > appsize.y)
 			images[i]->SetMaxSize({appsize.y/2, (appsize.y/2)/images[i]->GetSizeRatio()});
@@ -989,7 +989,7 @@ void ofApp::OnTagsChanged(string & text)
 	string temp = "";
 
 	// Split the string by spaces
-	for(int i=0; i<text.length(); ++i)
+	for(size_t i=0; i<text.length(); ++i)
 	{
 		if(text[i] == ' ')
 		{
@@ -1007,7 +1007,7 @@ void ofApp::OnTagsChanged(string & text)
 	metadata.pushTag("metadata");
 	metadata.clearTagContents("tags");
 	metadata.pushTag("tags");
-	for(int i=0; i<tags.size(); i++)
+	for(size_t i=0; i<tags.size(); i++)
 		metadata.addValue("tag", tags[i]);
 	metadata.popTag();
 	metadata.popTag();
@@ -1038,7 +1038,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 				case Luminance:
 				{
 					if (selectedfilter == Luminance) { selectedfilter = NoFilter; break; } else selectedfilter = Luminance;
-					for (int j=0; j<imagecount; j++)
+					for (size_t j=0; j<imagecount; j++)
 					{
 						ThumbObject* img = images[j];
 						Vector2D size = img->GetMinSize();
@@ -1052,7 +1052,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 				case Edge:
 				{
 					if (selectedfilter == Edge) { selectedfilter = NoFilter; break; } else selectedfilter = Edge;
-					for (int j=0; j<imagecount; j++)
+					for (size_t j=0; j<imagecount; j++)
 					{
 						ThumbObject* img = images[j];
 						Vector2D size = img->GetMinSize();
@@ -1067,7 +1067,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 				{
 					if (selectedfilter == Scenes) { selectedfilter = NoFilter; break; } else selectedfilter = Scenes;
 					filterslargest = 0;
-					for (int j=0; j<imagecount; j++)
+					for (size_t j=0; j<imagecount; j++)
 					{
 						if (filterslargest < images[j]->GetMetadata()->cuts.size())
 						{
@@ -1075,7 +1075,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 							filtersdifferent++;
 						}
 					}
-					for (int j=0; j<imagecount; j++)
+					for (size_t j=0; j<imagecount; j++)
 					{
 						ThumbObject* img = images[j];
 						Vector2D size = img->GetMinSize();
@@ -1093,7 +1093,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 				{
 					if (selectedfilter == Faces) { selectedfilter = NoFilter; break; } else selectedfilter = Faces;
 					filterslargest = 0;
-					for (int j=0; j<imagecount; j++)
+					for (size_t j=0; j<imagecount; j++)
 					{
 						if (filterslargest < (float)images[j]->GetMetadata()->facecount)
 						{
@@ -1101,7 +1101,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 							filtersdifferent++;
 						}
 					}
-					for (int j=0; j<imagecount; j++)
+					for (size_t j=0; j<imagecount; j++)
 					{
 						ThumbObject* img = images[j];
 						Vector2D size = img->GetMinSize();
@@ -1150,7 +1150,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 						std::vector<float> matches;
 						filterslargest = 0;
 						filtersdifferent = 0;
-						for (int j=0; j<imagecount; j++)
+						for (size_t j=0; j<imagecount; j++)
 						{
 							float ret = 0;
 							ThumbObject* img = images[j];
@@ -1167,7 +1167,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 							}
 							matches.push_back(ret);
 						}
-						for (int j=0; j<imagecount; j++)
+						for (size_t j=0; j<imagecount; j++)
 						{
 							ThumbObject* img = images[j];
 							Vector2D size = img->GetMinSize();
@@ -1214,7 +1214,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 					{
 						if (val == 0)
 						{
-							for (int j=0; j<imagecount; j++)
+							for (size_t j=0; j<imagecount; j++)
 							{
 								ThumbObject* img = images[j];
 								Vector2D size = img->GetMinSize();
@@ -1229,7 +1229,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 						}
 						else if (val == 1)
 						{
-							for (int j=0; j<imagecount; j++)
+							for (size_t j=0; j<imagecount; j++)
 							{
 								ThumbObject* img = images[j];
 								Vector2D size = img->GetMinSize();
@@ -1244,7 +1244,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 						}
 						else if (val == 2)
 						{
-							for (int j=0; j<imagecount; j++)
+							for (size_t j=0; j<imagecount; j++)
 							{
 								ThumbObject* img = images[j];
 								Vector2D size = img->GetMinSize();
@@ -1264,7 +1264,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 						{
 							if (val == k)
 							{
-								for (int j=0; j<imagecount; j++)
+								for (size_t j=0; j<imagecount; j++)
 								{
 									ThumbObject* img = images[j];
 									Vector2D size = img->GetMinSize();
@@ -1285,14 +1285,14 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 						{
 							if (val == k)
 							{
-								for (int j=0; j<imagecount; j++)
+								for (size_t j=0; j<imagecount; j++)
 								{
 									ThumbObject* img = images[j];
 									Vector2D size = img->GetMinSize();
 									Meta* meta = img->GetMetadata();
 									bool hastag = false;
 									img->SetSize(img->GetMinSize());
-									for (int m=0; m<meta->tags.size(); m++)
+									for (size_t m=0; m<meta->tags.size(); m++)
 									{
 										if (meta->tags[m] == filters_tags[k])
 										{
@@ -1325,10 +1325,10 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 void ofApp::RegenerateTagList()
 {
 	filters_tags.clear();
-	for (int i=0; i<imagecount; i++)
+	for (size_t i=0; i<imagecount; i++)
 	{
 		std::vector<string> tags = images[i]->GetMetadata()->tags;
-		for (int j=0; j<tags.size(); j++)
+		for (size_t j=0; j<tags.size(); j++)
 			if (!(std::find(filters_tags.begin(), filters_tags.end(), tags[j]) != filters_tags.end()) && tags[j] != "")
 				filters_tags.push_back(tags[j]);
 	}

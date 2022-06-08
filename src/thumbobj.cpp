@@ -80,7 +80,7 @@ void ThumbObject::update()
 		{
 			bool newcut = false;
 			double currentcut = vid->getPosition();
-			for (int i=0; i<this->m_metadata.cuts.size(); i++)
+			for (size_t i=0; i<this->m_metadata.cuts.size(); i++)
 			{
 				if (this->m_metadata.cuts[i] > currentcut+0.000001f)
 				{
