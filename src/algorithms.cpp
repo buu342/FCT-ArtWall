@@ -225,7 +225,7 @@ double* ofApp::calculateEdges(ofImage currentImage, double* avgArray) {
 
 		//converter em imagem para podermos guardar
 		ofxCv::toOf(m3, outputImage);
-		outputImage.save("toast" + to_string(i) + ".jpg");
+		//outputImage.save("toast" + to_string(i) + ".jpg");
 
 		//guardar a m�dia na posi��o adequada do array
 
