@@ -270,6 +270,7 @@
     <ClInclude Include="..\..\..\addons\ofxXmlSettings\libs\tinyxml.h" />
     <ClInclude Include="..\..\..\addons\ofxXmlSettings\src\ofxXmlSettings.h" />
     <ClInclude Include="src\ofApp.h" />
+    <ClInclude Include="src\structs.h" />
     <ClInclude Include="src\thumbobj.h" />
   </ItemGroup>
   <ItemGroup>

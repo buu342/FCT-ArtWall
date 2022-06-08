@@ -4,11 +4,20 @@
 
 #include "ofApp.h"
 
-Vector2D appsize = {1024, 768};
+Vector2D appsize = {DEFAULTAPPW, DEFAULTAPPH};
+ThumbObject* selectedImage;
+ThumbObject* highlightedImage;
+
+ofxPanel gui_metadatamenu;
+ofxInputField<string> gui_metadatamenu_tags;
+ofxLabel gui_metadatamenu_luminance;
+ofxLabel gui_metadatamenu_color;
+ofxLabel gui_metadatamenu_faces;
+ofxLabel gui_metadatamenu_edge;
+ofxLabel gui_metadatamenu_cuts;
 
 //========================================================================
 int main() {
-
 	ofSetupOpenGL(appsize.x, appsize.y, OF_WINDOW);			// <-------- setup the GL context
 
 	// this kicks off the running of my app
