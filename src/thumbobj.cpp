@@ -55,6 +55,7 @@ ThumbObject::ThumbObject(string path, float x, float y)
 	this->m_thumbsizemin = {64.0f, 64.0f/this->m_thumbsizeratio};
 	this->m_thumbsizemax = this->m_thumbsizereal;
 	this->m_thumbsize = this->m_thumbsizemin;
+	this->m_thumbsizehalf = this->m_thumbsize/2;
 	this->m_thumbpos = {x, y};
 	this->m_grabbedpos = {0.0f, 0.0f};
 	this->m_videoplaying = false;
@@ -161,6 +162,11 @@ Vector2D ThumbObject::GetSize()
 	return this->m_thumbsize;
 }
 
+Vector2D ThumbObject::GetSizeHalf()
+{
+	return this->m_thumbsizehalf;
+}
+
 Vector2D ThumbObject::GetMinSize()
 {
 	return this->m_thumbsizemin;
@@ -209,13 +215,16 @@ void ThumbObject::SetPos(Vector2D pos)
 
 void ThumbObject::SetSize(float x, float y)
 {
+	Vector2D old = this->m_thumbsize;
 	this->m_thumbsize.x = x;
 	this->m_thumbsize.y = y;
+	this->m_thumbsizehalf.x = x/2;
+	this->m_thumbsizehalf.y = y/2;
 }
 
 void ThumbObject::SetSize(Vector2D size)
 {
-	this->m_thumbsize = size;
+	this->SetSize(size.x, size.y);
 }
 
 void ThumbObject::SetGrabbedPosition(float x, float y)
@@ -273,8 +282,8 @@ void ThumbObject::AdvanceVideo(int frames)
 bool ThumbObject::IsOverlapping(float x, float y)
 {
 	return (
-		x >= this->m_thumbpos.x && x <= this->m_thumbpos.x + this->m_thumbsize.x &&
-		y >= this->m_thumbpos.y && y <= this->m_thumbpos.y + this->m_thumbsize.y
+		x >= this->m_thumbpos.x-this->m_thumbsizehalf.x && x <= this->m_thumbpos.x + this->m_thumbsizehalf.x &&
+		y >= this->m_thumbpos.y-this->m_thumbsizehalf.y && y <= this->m_thumbpos.y + this->m_thumbsizehalf.y
 	);
 }
 
@@ -286,9 +295,7 @@ bool ThumbObject::IsOverlapping(Vector2D coord)
 bool ThumbObject::IsOverlapping(ThumbObject* other)
 {
 	return (
-		this->m_thumbpos.x < other->GetPos().x + other->GetSize().x &&
-		this->m_thumbpos.x + this->m_thumbsize.x > other->GetPos().x &&
-		this->m_thumbpos.y < other->GetPos().y + other->GetSize().y &&
-		this->m_thumbsize.y + this->m_thumbpos.y > other->GetPos().y
+		(abs(this->m_thumbpos.x - other->GetPos().x) * 2 < (this->m_thumbsize.x + other->GetSize().x)) &&
+		(abs(this->m_thumbpos.y - other->GetPos().y) * 2 < (this->m_thumbsize.y + other->GetSize().y))
 	);
 }

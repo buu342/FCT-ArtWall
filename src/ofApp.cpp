@@ -7,8 +7,10 @@
 
 #define TESTING false
 
-#define ESCAPESPEED 100
-#define SCALESPEED 1
+#define ESCAPESPEED     3.0f
+#define SCALESPEED      1.0f
+#define WIGGLESIZE      0
+#define MAXPUSHING      4
 
 #define VIDBARALPHA     128
 #define VIDBARFADESPEED 8
@@ -29,7 +31,7 @@
 #define FILTERSBUTTONSHEIGHT 48
 
 string filters_color[] = {"Red", "Green", "Blue"};
-string filters_texture[] = {"0º", "22.5º", "45º", "67.5º", "90º", "112.5º", "135º", "157.5º"};
+string filters_texture[] = {"0ï¿½", "22.5ï¿½", "45ï¿½", "67.5ï¿½", "90ï¿½", "112.5ï¿½", "135ï¿½", "157.5ï¿½"};
 
 
 //--------------------------------------------------------------
@@ -87,74 +89,132 @@ void ofApp::setup() {
 //--------------------------------------------------------------
 void ofApp::update() {
 
-	// Iterate through all loaded thumbs
-	for (int i=0; i<imagecount; i++) {
+	vector<int> pushcount(imagecount, 0);
 
+	// Iterate through all loaded thumbs
+	for (int i=0; i<imagecount; i++) 
+	{
 		// Initialize a bunch of helper variables
 		ThumbObject* img = images[i];
 		Vector2D size = img->GetSize();
-		vector<ThumbObject*> collisions;
-		int colcount = 0;
-		collisions.resize(imagecount);
+		Vector2D sizehalf = img->GetSizeHalf();
+		vector<int> collisionmap(imagecount, 0);
 
-		// Allow dynamic image movement if physics is enabled
+		// If physics is enabled
 		if (physicson)
 		{
-			// Check for overlaps
-			for (int j=0; j<imagecount; j++) {
+			int colcount = 0;
+			vector<ThumbObject*> collisions;
+			collisions.resize(imagecount);
 
-				// Skip ourselves
-				if (i == j)
+			// Push the image if it's out of bounds
+			if (img != selectedImage)
+			{
+				Vector2D pos = img->GetPos();
+				Vector2D escape = {0, 0};
+				Vector2D magnitude = {0, 0};
+				if (pos.x-sizehalf.x < 0)
+				{
+					escape.x += 1.0f;
+					magnitude.x -= pos.x-sizehalf.x;
+				}
+				if (pos.x+sizehalf.x > appsize.x)
+				{
+					escape.x -= 1.0f;
+					magnitude.x += pos.x+sizehalf.x - appsize.x;
+				}
+				if (pos.y-sizehalf.y < 0)
+				{
+					escape.y += 1.0f;
+					magnitude.y -= pos.y-sizehalf.y;
+				}
+				if (pos.y+sizehalf.y > appsize.y)
+				{
+					escape.y -= 1.0f;
+					magnitude.y += pos.y+sizehalf.y - appsize.y;
+				}
+
+				// If we have an escape vector, then push the thumb back into bounds
+				if (escape.x != 0 || escape.y != 0)
+				{
+					escape = escape/sqrtf(escape.x*escape.x + escape.y*escape.y);
+					escape = escape*ESCAPESPEED*(magnitude/sizehalf);
+					img->SetPos(img->GetPos()+escape);
+				}
+			}
+
+			// Check for overlaps
+			for (int j=0; j<imagecount; j++) 
+			{
+				// Skip ourselves or the highlighted image, or images that have been pushed too much
+				if (i == j || images[j] == highlightedImage)
 					continue;
 
 				// If an image overlaps, add it to our list of collisions
 				if (img->IsOverlapping(images[j]))
+				{
+					collisionmap[colcount] = j;
 					collisions[colcount++] = images[j];
+				}
 			}
 
 			// If we have collisions
 			if (colcount > 0)
 			{
-				// Iterate through all collided objects
+				// Check for overlaps
 				for (int j=0; j<colcount; j++)
 				{
-					// Skip the current selected image
-					if (highlightedImage == collisions[j])
+					if (pushcount[collisionmap[j]] > MAXPUSHING)
 						continue;
 
 					// Push the object we're colliding with away
-					Vector2D center1 = img->GetPos() + img->GetSize()/2;
-					Vector2D center2 = collisions[j]->GetPos() + collisions[j]->GetSize()/2;
+					Vector2D center1 = img->GetPos();
+					Vector2D center2 = collisions[j]->GetPos();
 					Vector2D escape = center2 - center1;
-					float distance = sqrtf((center2.x-center1.x)*(center2.x-center1.x) + (center2.y-center1.y)*(center2.y-center1.y));
-					escape = escape / sqrtf(escape.x*escape.x + escape.y*escape.y);
-					escape = escape*ESCAPESPEED*(1/MAX(1, distance));
-					escape = collisions[j]->GetPos() + escape;
-					escape = {MAX(0, MIN(escape.x, appsize.x - img->GetSize().x)), MAX(0, MIN(escape.y, appsize.y - img->GetSize().y))};
-					collisions[j]->SetPos(escape);
+					#if (WIGGLESIZE == 0)
+					Vector2D wiggle = {0, 0};
+					#else
+					Vector2D wiggle = {std::rand()%(WIGGLESIZE*2)-WIGGLESIZE, std::rand()%(WIGGLESIZE*2)-WIGGLESIZE};
+					#endif
+					Vector2D size1half = img->GetSizeHalf()*1.5;
+					Vector2D size2half = collisions[j]->GetSizeHalf()*1.5;
+					float x_left = MAX(center1.x-size1half.x, center2.x-size2half.x);
+					float y_top = MAX(center1.y-size1half.y, center2.y-size2half.y);
+					float x_right = MIN(center1.x+size1half.x, center2.x+size2half.x);
+					float y_bottom = MIN(center1.y+size1half.y, center2.y+size2half.y);
+					float intersection_area = (x_right - x_left)*(y_bottom - y_top);
+					float iou = intersection_area/(img->GetSize().x*img->GetSize().y + collisions[j]->GetSize().x*collisions[j]->GetSize().y - intersection_area);
+					
+					// Normalize and push
+					iou = MAX(0, MIN(1, iou));
+					escape = escape/sqrtf(escape.x*escape.x + escape.y*escape.y);
+					escape = escape*ESCAPESPEED*iou;
+					if (iou > 1)
+						printf("%f\n", iou);
+					collisions[j]->SetPos(collisions[j]->GetPos() + escape + wiggle);
+					pushcount[collisionmap[j]]++;
 
-					// Scale down the largest image if we're still overlapping
-					if (img->IsOverlapping(collisions[j]))
-					{
-						ThumbObject* largest = img;
-						if (img->IsOverlapping(collisions[j]) && largest->GetSize() < images[j]->GetSize())
-							largest = images[j];
-						if (highlightedImage != largest && largest->GetSize() > largest->GetMinSize())
-							largest->SetSize(largest->GetSize().x - SCALESPEED, largest->GetSize().y - SCALESPEED/largest->GetSizeRatio());
-					}
+					// Scale down the largest image
+					ThumbObject* largest = img;
+					if (largest == highlightedImage || largest->GetSize().x*largest->GetSize().y < collisions[j]->GetSize().x*collisions[j]->GetSize().y)
+						largest = collisions[j];
+					if (largest->GetSize() > largest->GetMinSize())
+						largest->SetSize(largest->GetSize().x - 0.5*SCALESPEED, largest->GetSize().y - 0.5*SCALESPEED/largest->GetSizeRatio());
 				}
 			}
-		
-			// Enlarge the image if it is not colliding with anything
-			if ((colcount == 0 || img == highlightedImage) && img->GetSize() < img->GetMaxSize())
-				img->SetSize(img->GetSize().x + SCALESPEED, img->GetSize().y + SCALESPEED/img->GetSizeRatio());
 
-			// Don't allow the image to go out of bounds
-			img->SetPos(MAX(0, MIN(img->GetPos().x, appsize.x - img->GetSize().x)), MAX(0, MIN(img->GetPos().y, appsize.y - img->GetSize().y)));
+			// Enlarge the image if it is not colliding with anything or it's highlighted
+			if (img->GetSize() < img->GetMaxSize())
+			{
+				if (img == highlightedImage)
+					img->SetSize(img->GetSize().x + 2*SCALESPEED, img->GetSize().y + 2*SCALESPEED/img->GetSizeRatio());
+				else if (colcount == 0)
+					img->SetSize(img->GetSize().x + SCALESPEED, img->GetSize().y + SCALESPEED/img->GetSizeRatio());
+			}
+
+			// Clear the memory used by the vector
+			collisions.clear();
 		}
-
-		// Clear the memory used by the vector
-		collisions.clear();
 		
 		// Call the update function on the image (to play video)
 		img->update();
@@ -188,16 +248,17 @@ void ofApp::draw() {
 			ThumbObject* img = images[i];
 			Vector2D pos = img->GetPos();
 			Vector2D size = img->GetSize();
+			Vector2D sizehalf = img->GetSizeHalf();
 			switch (img->GetThumbType())
 			{
 				case Image:
-					img->GetImage()->draw(pos.x, pos.y, size.x, size.y);
+					img->GetImage()->draw(pos.x-sizehalf.x, pos.y-sizehalf.y, size.x, size.y);
 					break;
 				case GIF:
-					img->GetGIF()->draw(pos.x, pos.y, size.x, size.y);
+					img->GetGIF()->draw(pos.x-sizehalf.x, pos.y-sizehalf.y, size.x, size.y);
 					break;
 				case Video:
-					img->GetVideo()->draw(pos.x, pos.y, size.x, size.y);
+					img->GetVideo()->draw(pos.x-sizehalf.x, pos.y-sizehalf.y, size.x, size.y);
 					break;
 			}
 		}
@@ -210,7 +271,7 @@ void ofApp::draw() {
 			float butbufsize = (VIDBUTTONSIZE+VIDBUTTONSPACE)*ratio;
 			float buffer = VIDBUTTONSPACE*ratio;
 			float bufferh = VIDBUTTONSPACE*ratio/2;
-			Vector2D pos = highlightedImage->GetPos();
+			Vector2D pos = highlightedImage->GetPos() - highlightedImage->GetSizeHalf();
 			Vector2D size = highlightedImage->GetSize();
 			ofImage* buttons[VIDBUTTONCOUNT];
 			float buty = pos.y+size.y-butbufsize;
@@ -276,7 +337,7 @@ void ofApp::draw() {
 			if (filterfurtheropen && i == selectedfilter)
 			{
 				string *strings;
-				int furthercount = 0;
+				size_t furthercount = 0;
 				switch (selectedfilter) 
 				{
 					case Color: furthercount = sizeof(filters_color)/sizeof(filters_color[0]); strings = filters_color; break;
@@ -285,7 +346,7 @@ void ofApp::draw() {
 				}
 				for (int j=1; j<furthercount+1; j++)
 				{
-					int strnum = furthercount-j;
+					size_t strnum = furthercount-j;
 					ofSetColor(ofColor::black);
 					ofDrawRectangle(width*i, ofGetWindowHeight()-filtersheight-j*filtersheight, width, filtersheight);
 					ofSetColor(ofColor::white);
@@ -697,10 +758,10 @@ void ofApp::mouseDragged(int x, int y, int button) {
 	{
 		if (selectedImage != NULL)
 		{
-			Vector2D size = selectedImage->GetSize();
+			Vector2D sizehalf = selectedImage->GetSizeHalf();
 			Vector2D gpos = selectedImage->GetGrabbedPosition();
-			x = MAX(0, MIN(x-gpos.x, appsize.x - size.x));
-			y = MAX(0, MIN(y-gpos.y, appsize.y - size.y));
+			x = x-gpos.x;
+			y = y-gpos.y;
 			selectedImage->SetPos(x, y);
 		}
 	}
@@ -789,7 +850,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 				float butsize = VIDBUTTONSIZE*ratio;
 				float butbufsize = (VIDBUTTONSIZE+VIDBUTTONSPACE)*ratio;
 				float buffer = VIDBUTTONSPACE*ratio;
-				Vector2D pos = highlightedImage->GetPos();
+				Vector2D pos = highlightedImage->GetPos() - highlightedImage->GetSizeHalf();
 				Vector2D size = highlightedImage->GetSize();
 				float buty = pos.y+size.y-butbufsize;
 				if (y >= buty && y <= buty+butbufsize)
@@ -984,7 +1045,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 						Meta* meta = img->GetMetadata();
 						img->SetSize(img->GetMinSize());
 						img->SetPos(padding + MAX(0, MIN(1, (meta->averageluminance/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+						img->SetPos(img->GetPos().x + ((float)(std::rand()%20000-10000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 					}
 					break;
 				}
@@ -998,7 +1059,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 						Meta* meta = img->GetMetadata();
 						img->SetSize(img->GetMinSize());
 						img->SetPos(padding + MAX(0, MIN(1, ((float)meta->edgeangle/360)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+						img->SetPos(img->GetPos().x + ((float)((std::rand()%10000)-20000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 					}
 					break;
 				}
@@ -1024,7 +1085,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 							img->SetPos(padding + 0.5*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
 						else
 							img->SetPos(padding + MAX(0, MIN(1, ((float)meta->cuts.size()/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+						img->SetPos(img->GetPos().x + ((float)((std::rand()%10000)-20000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 					}
 					break;
 				}
@@ -1050,7 +1111,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 							img->SetPos(padding + 0.5*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
 						else
 							img->SetPos(padding + MAX(0, MIN(1, ((float)meta->facecount/filterslargest)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-						img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+						img->SetPos(img->GetPos().x + ((float)((std::rand()%10000)-20000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 					}
 					break;
 				}
@@ -1113,7 +1174,7 @@ void ofApp::HandleFilterButtons(int x, int y)
 							Meta* meta = img->GetMetadata();
 							img->SetSize(img->GetMinSize());
 							img->SetPos(padding + MAX(0, MIN(1, matches[j]))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-							img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+							img->SetPos(img->GetPos().x + ((float)((std::rand()%10000)-20000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 						}
 					}
 					else
@@ -1160,7 +1221,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 								Meta* meta = img->GetMetadata();
 								img->SetSize(img->GetMinSize());
 								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.red/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+								img->SetPos(img->GetPos().x + ((float)((std::rand()%10000)-20000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 							}
 							filterfurther = val;
 							filterfurtheropen = false;
@@ -1175,7 +1236,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 								Meta* meta = img->GetMetadata();
 								img->SetSize(img->GetMinSize());
 								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.green/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+								img->SetPos(img->GetPos().x + ((float)((std::rand()%10000)-20000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 							}
 							filterfurther = val;
 							filterfurtheropen = false;
@@ -1190,7 +1251,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 								Meta* meta = img->GetMetadata();
 								img->SetSize(img->GetMinSize());
 								img->SetPos(padding + MAX(0, MIN(1, (meta->averagecolor.blue/255)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-								img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+								img->SetPos(img->GetPos().x + ((float)((std::rand()%10000)-20000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 							}
 							filterfurther = val;
 							filterfurtheropen = false;
@@ -1210,7 +1271,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 									Meta* meta = img->GetMetadata();
 									img->SetSize(img->GetMinSize());
 									img->SetPos(padding + MAX(0, MIN(1, (((float)(((int)meta->textures[k])%360))/360)))*(appsize.x-padding*2)-size.x/2, appsize.y/2-size.y/2);
-									img->SetPos(img->GetPos().x + std::rand()%2-5, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+									img->SetPos(img->GetPos().x + ((float)((std::rand()%10000)-20000))/10000.0f, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 								}
 								filterfurther = k;
 								filterfurtheropen = false;
@@ -1243,7 +1304,7 @@ void ofApp::HandleFurtherFilterButtons(int x, int y)
 										img->SetPos(3*appsize.x/4-size.x/2, appsize.y/2-size.y/2);
 									else
 										img->SetPos(1*appsize.x/4-size.x/2, appsize.y/2-size.y/2);
-									img->SetPos(img->GetPos().x + std::rand()%((int)size.x)-size.x/2, img->GetPos().y + std::rand()%((int)size.y)-size.y/2);
+									img->SetPos(img->GetPos().x + std::rand()%((int)size.x)-size.x/2, img->GetPos().y + std::rand()%((int)size.y*2)-size.y/2);
 								}
 								filterfurther = k;
 								filterfurtheropen = false;
